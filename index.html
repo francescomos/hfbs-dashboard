@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HFBS Dashboard v8</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f5f4f1;--card:#fff;--border:#d5d3ce;--border-l:#e8e6e0;--text1:#111110;--text2:#4a4944;--text3:#7a7872;--green:#157a52;--green-l:#ddf2e8;--red:#c41e1e;--red-l:#fdeeed;--amber:#b86600;--amber-l:#fff7e6;--yellow:#ca9c00;--blue:#1d4ed8;--blue-l:#e8f0fe;--purple:#6d28d9;--hfarm:#00a682;--hfarm-d:#00775e;--radius:10px;--radius-sm:6px;--font:'Instrument Sans',system-ui,sans-serif;--mono:'JetBrains Mono',monospace}
+*{box-sizing:border-box;margin:0;padding:0}body{font-family:var(--font);background:var(--bg);color:var(--text1);font-size:16px;line-height:1.5}
+.header{background:#f0efe8;border-bottom:1px solid var(--border);padding:14px 32px;display:flex;justify-content:space-between;align-items:center}
+.header-title{font-size:16px;font-weight:700;letter-spacing:-.02em}.header-title span{color:var(--hfarm)}.header-sub{font-size:12px;color:var(--text3)}
+.header-right{display:flex;align-items:center;gap:12px}.last-update{font-size:11px;color:var(--text3)}
+.btn{padding:8px 16px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--card);color:var(--text1);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font)}.btn:hover{background:var(--bg)}
+.btn-green{background:var(--hfarm);border-color:var(--hfarm);color:#fff}.btn-green:hover{background:var(--hfarm-d)}
+.setup{padding:12px 32px;background:var(--amber-l);display:flex;align-items:center;gap:8px;font-size:13px;border-bottom:1px solid var(--border)}.setup.hidden{display:none}
+.setup input{flex:1;padding:7px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:var(--font)}
+.setup button{padding:7px 16px;background:var(--text1);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;cursor:pointer;font-family:var(--font);font-weight:600}
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--border);padding:0 32px;background:var(--card)}
+.tab{padding:14px 22px;font-size:14px;font-weight:600;color:var(--text3);cursor:pointer;border-bottom:2.5px solid transparent}.tab:hover{color:var(--text1)}.tab.active{color:var(--hfarm);border-bottom-color:var(--hfarm)}
+.tab-panel{display:none;padding:24px 32px}.tab-panel.active{display:block}
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:10px;margin-bottom:16px}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;cursor:pointer;transition:all .15s}.kpi:hover{box-shadow:0 2px 8px rgba(0,0,0,.06);border-color:var(--hfarm)}.kpi.active-sort{border-color:var(--hfarm);box-shadow:0 0 0 2px rgba(0,184,148,.15)}
+.kpi-label{font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.kpi-value{font-size:31px;font-weight:700;font-family:var(--mono);line-height:1.1}.kpi-sub{font-size:13px;color:var(--text2);margin-top:5px}
+.filters{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.filter-pill{padding:7px 16px;border-radius:20px;border:1px solid var(--border);background:var(--card);font-size:13px;font-weight:500;cursor:pointer;color:var(--text2);font-family:var(--font)}.filter-pill.active{background:var(--text1);color:#fff;border-color:var(--text1)}
+.corso-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
+.corso-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;border-left:4px solid var(--border)}.corso-card:hover{box-shadow:0 2px 12px rgba(0,0,0,.06)}
+.corso-card.zona-rossa{border-left-color:var(--red);background:var(--red-l)}
+.corso-zr{font-size:11px;font-weight:700;color:var(--red);margin-bottom:8px}
+.corso-name{font-size:17px;font-weight:700;margin-bottom:3px}
+.corso-meta{font-size:13px;color:var(--text3);margin-bottom:6px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.corso-tag{padding:4px 12px;border-radius:12px;font-size:12px;font-weight:600;line-height:1;display:inline-block}
+.tag-intake{background:var(--blue-l);color:var(--blue)}.tag-tipo{background:#e8e6e0;color:var(--text2)}
+.tag-ok,.ed-status-active{background:var(--green-l);color:var(--green)}.tag-warn{background:var(--red-l);color:var(--red)}
+.ed-status{padding:4px 12px;border-radius:12px;font-size:12px;font-weight:600;line-height:1;display:inline-block;margin-bottom:0}
+.ed-status-selling{background:var(--blue-l);color:var(--blue)}.ed-status-done{background:#e8e6e0;color:var(--text3)}
+.corso-date{font-size:13px;color:var(--text2);margin-bottom:8px}
+.prog{margin-bottom:10px}.prog-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}.prog-label{font-size:13px;color:var(--text2)}.prog-nums{display:flex;align-items:baseline;gap:4px}
+.prog-iscritti{font-family:var(--mono);font-size:23px;font-weight:700}.prog-target{font-family:var(--mono);font-size:14px;color:var(--text3)}.prog-pct{font-family:var(--mono);font-size:14px;font-weight:600;margin-left:6px}
+.prog-bar{height:8px;background:#f0efe8;border-radius:4px;overflow:visible;position:relative}.prog-fill{height:100%;border-radius:4px}.prog-marker{position:absolute;top:-3px;width:2px;height:14px;background:var(--text1);border-radius:1px}
+.rev-line{font-size:14px;color:var(--text2);margin-bottom:10px}.rev-line b{color:var(--green)}
+.funnel{display:flex;align-items:flex-end;gap:3px;height:64px;margin:12px 0 6px;overflow:hidden}
+.funnel-step{display:flex;flex-direction:column;align-items:center;flex:1;height:100%;justify-content:flex-end}
+.funnel-bar{width:100%;border-radius:4px 4px 0 0;min-height:4px}
+.funnel-info{text-align:center;margin-top:4px}.funnel-num{font-family:var(--mono);font-size:16px;font-weight:700}.funnel-lbl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-top:1px}
+.prod-select-wrap{display:flex;align-items:center;gap:14px;margin-bottom:20px;background:var(--card);padding:16px 22px;border-radius:var(--radius);border:1px solid var(--border)}
+.prod-select{padding:10px 18px;border:2px solid var(--border);border-radius:var(--radius);font-size:16px;font-family:var(--font);font-weight:600;min-width:300px;background:var(--bg);cursor:pointer}.prod-select:focus{border-color:var(--hfarm);outline:none}
+.prod-header{background:var(--card);border:1px solid var(--border);border-radius:var(--radius) var(--radius) 0 0;padding:22px 26px}.prod-title{font-size:23px;font-weight:700;letter-spacing:-.02em}.prod-subtitle{font-size:14px;color:var(--text2);margin-top:5px}
+.prod-section{background:var(--card);border:1px solid var(--border);border-top:none;padding:20px 26px}.prod-section:last-child{border-radius:0 0 var(--radius) var(--radius)}
+.prod-section-title{font-size:13px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border-l)}
+.ed-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}.ed-card{background:var(--bg);border-radius:var(--radius-sm);padding:14px 16px}.ed-label{font-size:14px;font-weight:700;margin-bottom:2px}.ed-big{font-family:var(--mono);font-size:25px;font-weight:700}.ed-stat{font-size:13px;color:var(--text2);margin-top:2px}
+.ed-mktg{font-size:12px;color:var(--text3);margin-top:6px;padding-top:6px;border-top:1px solid var(--border-l)}
+.stage-row{display:flex;gap:5px;flex-wrap:wrap}.stage-badge{padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;color:#fff}
+.mtable{width:100%;border-collapse:collapse;font-size:14px}.mtable th{text-align:left;font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;padding:8px 10px;border-bottom:2px solid var(--border)}.mtable td{padding:8px 10px;border-bottom:1px solid var(--border-l)}.mtable .num{font-family:var(--mono);font-weight:500;text-align:right}
+.mtable tr.row-sub td{background:var(--bg);font-weight:700}.mtable tr.row-tot td{background:#f0efe8;font-weight:700;border-top:2px solid var(--border)}
+.cell-good{color:var(--green);font-weight:700}.cell-bad{color:var(--red);font-weight:700}
+.monitor-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}.monitor-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px}.monitor-card-title{font-size:15px;font-weight:700;margin-bottom:10px}
+.monitor-row{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:14px}.monitor-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}.dot-ok{background:var(--green)}.dot-warn{background:var(--amber)}.dot-miss{background:var(--red)}.monitor-label{flex:1;color:var(--text2)}.monitor-val{font-family:var(--mono);font-size:12px;font-weight:500}
+.badge{padding:3px 10px;border-radius:12px;font-size:12px;font-weight:700;display:inline-block}.badge-ok{background:var(--green-l);color:var(--green)}.badge-warn{background:var(--amber-l);color:var(--amber)}.badge-bad{background:var(--red-l);color:var(--red)}
+.loading{display:flex;align-items:center;justify-content:center;padding:80px;flex-direction:column;gap:12px;color:var(--text3)}.spinner{width:24px;height:24px;border:2.5px solid var(--border);border-top-color:var(--hfarm);border-radius:50%;animation:spin .7s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+.empty-state{text-align:center;padding:60px 20px;color:var(--text3)}.empty-state h3{font-size:17px;color:var(--text2);margin-bottom:6px}
+@media(max-width:900px){.ed-row{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:768px){
+.header,.tabs,.tab-panel,.setup{padding-left:12px;padding-right:12px}
+.kpi-row{grid-template-columns:repeat(2,1fr)}.corso-grid{grid-template-columns:1fr}.tab{padding:10px 12px;font-size:13px}.ed-row{grid-template-columns:1fr}
+.prod-select{min-width:auto;width:100%}.prod-select-wrap{flex-direction:column;align-items:stretch}
+.kpi-value{font-size:24px}.prog-iscritti{font-size:20px}.monitor-grid{grid-template-columns:1fr!important}.mtable{font-size:12px}
+}
+</style>
+</head>
+<body>
+<div class="header"><div><div class="header-title">H-FARM <span>Business School</span></div><div class="header-sub">Executive Education Dashboard v8</div></div><div class="header-right"><span class="last-update" id="last-update"></span><button class="btn btn-green" onclick="refreshData()">Aggiorna</button></div></div>
+<div class="setup" id="setup"><span>Datalake URL:</span><input type="text" id="url-input" placeholder="Incolla URL del Web App…"><button onclick="saveUrl()">Salva e carica</button></div>
+<div class="tabs"><div class="tab active" onclick="switchTab('panoramica',this)">Panoramica</div><div class="tab" onclick="switchTab('prodotto',this)">Per prodotto</div><div class="tab" onclick="switchTab('marketing',this)">Marketing</div><div class="tab" onclick="switchTab('insights',this)">Insights</div><div class="tab" onclick="switchTab('qualita',this)">Qualità</div><div class="tab" onclick="switchTab('pl',this)">P&L</div><div class="tab" onclick="switchTab('monitor',this)">Monitor fonti</div></div>
+<div class="tab-panel active" id="tab-panoramica"><div class="kpi-row" id="kpi-row"></div><div class="filters" id="filters"></div><div class="corso-grid" id="corso-grid"><div class="empty-state"><h3>Configura il datalake</h3><p>Incolla URL in alto.</p></div></div></div>
+<div class="tab-panel" id="tab-prodotto"><div class="prod-select-wrap"><label style="font-size:14px;font-weight:600;color:var(--text2)">Prodotto</label><select class="prod-select" id="prod-select" onchange="renderProdotto()"><option value="">— seleziona prodotto —</option></select></div><div id="prod-detail"><div class="empty-state"><h3>Seleziona un prodotto</h3></div></div></div>
+<div class="tab-panel" id="tab-insights"><div id="insights-content"><div class="empty-state"><h3>Carica i dati</h3></div></div></div>
+<div class="tab-panel" id="tab-qualita"><div id="qualita-content"><div class="empty-state"><h3>Carica i dati</h3></div></div></div>
+<div class="tab-panel" id="tab-pl"><div id="pl-content"><div class="empty-state"><h3>Carica i dati</h3></div></div></div>
+<div class="tab-panel" id="tab-marketing"><div id="marketing-content"><div class="empty-state"><h3>Carica i dati</h3></div></div></div>
+<div class="tab-panel" id="tab-monitor"><div id="monitor-global"></div><h3 style="font-size:16px;font-weight:700;margin:24px 0 14px">Stato fonti per prodotto</h3><div class="monitor-grid" id="monitor-per-prod"></div></div>
+
+<script>
+// ================================================================
+// HFBS Dashboard v8 — file definitivo con TUTTI i fix applicati
+// ================================================================
+// CHANGELOG v8:
+//   - Spend REALE da Meta_Campaigns.spend + GAds_Campaigns.cost (NON Mktg_ExEd)
+//   - Date italiane GG/mm ovunque
+//   - Daily trend: date sotto ogni barra, separatori W/M, layout a 3 zone
+//   - P&L: header+intake merged su una riga con sfondo #ddd8d0
+//   - P&L orphans: brand (blu) separati da orphan (ambra), filtro >€50
+//   - P&L scenario 50% per corsi futuri
+//   - Etichette canali allineate sotto segmento
+//   - Overlap candidati con nomi corsi specifici
+//   - Monitor fonti con padding tra colonne
+//   - Brochure con nome completo corso + sigla
+//   - Insights marginalità: riga campagne generiche prima del totale
+//   - Separatori " | " ovunque
+//   - Badge card "X mktg"
+//   - fEk() per numeri abbreviati
+// ================================================================
+
+let DL = null, _corsiCache = null;
+const STATE = {filter:'all', sortBy:null, selectedEdition:null};
+
+const IF  = {FA24:'Fall 24',FA25:'Fall 25',WI25:'Winter 25',WI26:'Winter 26',SP25:'Spring 25',SP26:'Spring 26',SU25:'Summer 25',SU26:'Summer 26'};
+const IS  = {'FALL 24':'FA24','FALL 25':'FA25','WINTER 25':'WI25','WINTER 26':'WI26','SPRING 25':'SP25','SPRING 26':'SP26','SUMMER 25':'SU25','SUMMER 26':'SU26'};
+const TL  = {PM:'Professional Master',ME:'Master Executive',MB:'MBA',MBA:'MBA',IC:'Impact Course',RE:'Retreat',LR:'Retreat',SS:'Summer School',EM:'Executive Master'};
+const SC  = {Booked:'#3b82f6',Interviewed:'#7c3aed',Negotiation:'#f59e0b','Contract pending':'#d97706','Closed Won':'#22c55e','Closed Lost':'#dc2626','No Show':'#991b1b',Canceled:'#9ca3af',Rescheduled:'#60a5fa'};
+const PA  = {RE1:'RE',HP1:'HP',AW:'AW1'};
+const MESI_IT = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+
+const nI = c => { if(!c)return''; c=c.toUpperCase(); if(/^(FA|WI|SP|SU)\d{2}$/.test(c))return c; const m=c.match(/^([A-Z])(\d{2})$/); if(m){const p={W:'WI',F:'FA',S:'SP'};if(p[m[1]])return p[m[1]]+m[2];} return c; };
+const nP = p => { p=(p||'').toUpperCase(); return PA[p]||p; };
+
+// ── Helpers generici ─────────────────────────────────────────────
+const fE  = n => n?'€'+Math.round(n).toLocaleString('it-IT'):'€0';
+const fEk = n => {if(!n)return'€0';if(Math.abs(n)>=1000000)return'€'+(n/1000000).toFixed(1)+'M';if(Math.abs(n)>=10000)return'€'+Math.round(n/1000)+'k';return'€'+Math.round(n).toLocaleString('it-IT');};
+// v8: date italiane GG/mm
+const fD  = s => { if(!s)return''; try{const d=new Date(s);if(isNaN(d))return s;return d.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'});}catch(e){return s;} };
+const fDshort = s => { if(!s)return''; try{const d=new Date(s);if(isNaN(d))return s;return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0');}catch(e){return s;} };
+const dTS = c => { const s=c.startDate||''; if(!s)return -999; try{const d=new Date(s);if(isNaN(d))return -999;return Math.floor((d-Date.now())/864e5);}catch(e){return -999;} };
+const cSt = c => { const d=dTS(c); if(d>0)return'selling'; const e=c.endDate||''; if(!e)return d>-999?'active':'selling'; try{const ed=new Date(e);if(!isNaN(ed)&&Date.now()>ed)return'done';}catch(e){} return'active'; };
+const bC  = p => p>=90?'var(--green)':p>=80?'#86efac':p>=70?'var(--yellow)':p>=60?'var(--amber)':'var(--red)';
+
+// v8: spend reale da API campaigns (Meta+GAds), NON da Mktg_ExEd
+function getRealSpend() {
+  if(!DL) return 0;
+  var total = 0;
+  (DL.Meta_Campaigns||[]).forEach(function(c){ total += parseFloat(c.spend)||0; });
+  (DL.GAds_Campaigns||[]).forEach(function(c){ total += parseFloat(c.cost)||0; });
+  return total;
+}
+function getSpendForProd(prod) {
+  if(!DL) return 0;
+  var total = 0;
+  (DL.Meta_Campaigns||[]).forEach(function(c){
+    var s=(c.sigle||'').split(',').map(function(x){return nP(x.trim());}).filter(Boolean);
+    if(s.indexOf(prod)>=0) total += (parseFloat(c.spend)||0) / s.length;  // split tra prodotti
+  });
+  (DL.GAds_Campaigns||[]).forEach(function(c){
+    var s=(c.sigle||'').split(',').map(function(x){return nP(x.trim());}).filter(Boolean);
+    if(s.indexOf(prod)>=0) total += (parseFloat(c.cost)||0) / s.length;
+  });
+  return total;
+}
+
+// ── Setup & Caricamento ──────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  const u = localStorage.getItem('hfarm_datalake_url')||'';
+  if (u) { document.getElementById('setup').classList.add('hidden'); document.getElementById('url-input').value=u; refreshData(); }
+});
+function saveUrl() { const u=document.getElementById('url-input').value.trim(); if(!u)return alert('Incolla URL.'); localStorage.setItem('hfarm_datalake_url',u); document.getElementById('setup').classList.add('hidden'); refreshData(); }
+function switchTab(n,el) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-'+n).classList.add('active');
+  if(n==='prodotto'&&DL)populateProdSelect();
+  if(n==='pl'&&DL)renderPL();
+  if(n==='marketing'&&DL)renderMarketing();
+}
+
+async function refreshData() {
+  const u = localStorage.getItem('hfarm_datalake_url'); if(!u)return;
+  document.getElementById('corso-grid').innerHTML='<div class="loading"><div class="spinner"></div>Caricamento…</div>';
+  try {
+    let d;
+    try { const r=await fetch(u,{redirect:'follow'}); if(!r.ok)throw new Error('HTTP '+r.status); d=await r.json(); }
+    catch(fe) { d=await new Promise((res,rej)=>{const cb='_hf'+Date.now(),s=document.createElement('script');window[cb]=x=>{res(x);delete window[cb];s.remove();};s.src=u+(u.includes('?')?'&':'?')+'callback='+cb;s.onerror=()=>rej(new Error('Errore JSONP.'));document.head.appendChild(s);setTimeout(()=>rej(new Error('Timeout.')),30000);}); }
+    if(d.error)throw new Error(d.error);
+    DL=d; _corsiCache=null;
+    const lr=DL._lastRefresh||'';
+    document.getElementById('last-update').textContent=lr?'Agg. '+new Date(lr.replace('Ultimo refresh: ','')).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
+    renderAll();
+  } catch(e) { document.getElementById('corso-grid').innerHTML='<div class="empty-state"><h3>Errore</h3><p>'+e.message+'</p></div>'; }
+}
+
+// ── Helper dati settimanali ──────────────────────────────────────
+function calcRitardo(fk) {
+  if(!DL||!DL.Mktg_ExEd_Weekly)return null;
+  const today = new Date();
+  const rows  = DL.Mktg_ExEd_Weekly.filter(r => r.fk===fk);
+  if(!rows.length)return null;
+  const cumul = m => rows.filter(r=>r.metrica===m&&new Date(r.data)<=today).reduce((s,r)=>s+(parseFloat(r.valore)||0),0);
+  const lA=cumul('LEAD ATTESI'),lR=cumul('LEAD RICEVUTI');
+  const cA=cumul('COLLOQUI ATTESI'),cR=cumul('COLLOQUI FISSATI');
+  const iA=cumul('ISCRITTI ATTESI'),iR=cumul('ISCRITTI RICEVUTI');
+  return {leadRitardo:lA>0&&lR<lA, colloquiRitardo:cA>0&&cR<cA, iscrittiRitardo:iA>0&&iR<iA, lA,lR,cA,cR,iA,iR, hasData:lA>0||cA>0||iA>0};
+}
+
+// ── Helper overlap candidati ─────────────────────────────────────
+function calcOverlapDetail(nome) {
+  if(!DL)return {total:0,courses:[]};
+  const corsi = buildCorsi();
+  const thisFks  = new Set(corsi.filter(c=>c.nome===nome).map(c=>c.fk));
+  const emailsOf = (fks) => {
+    const s = new Set();
+    for(const g of (DL.Gravity_Forms||[])){if(!g.email||g.formTipo!=='candidatura')continue;const p=(g.codicecorso||'').toUpperCase().split('-');if(p.length>=3&&fks.has(nP(p[0])+'-'+p[2]))s.add(g.email.toLowerCase());}
+    for(const d of (DL.Brevo_Deals||[])){if(!d.contactEmail)continue;const p=(d.sigla||'').toUpperCase().split('-');if(p.length>=3&&fks.has(nP(p[0])+'-'+p[2]))s.add(d.contactEmail.toLowerCase());}
+    return s;
+  };
+  const thisE=emailsOf(thisFks);
+  var overlapCourses=[];
+  for(const c2 of corsi){
+    if(c2.nome===nome)continue;
+    var fk2Set=new Set([c2.fk]);
+    var emails2=emailsOf(fk2Set);
+    var cnt=0;for(const e of thisE){if(emails2.has(e))cnt++;}
+    if(cnt>0)overlapCourses.push({name:c2.nome,count:cnt});
+  }
+  overlapCourses.sort((a,b)=>b.count-a.count);
+  // Deduplica per nome corso
+  var seen={},deduped=[];
+  for(var oc of overlapCourses){if(!seen[oc.name]){seen[oc.name]=true;deduped.push(oc);}else{var existing=deduped.find(x=>x.name===oc.name);if(existing)existing.count+=oc.count;}}
+  var total=0;for(var d2 of deduped)total+=d2.count;
+  return {total:total,courses:deduped};
+}
+
+// ── buildCorsi() con cache ────────────────────────────────────────
+function buildCorsi() {
+  if(_corsiCache)return _corsiCache;
+  if(!DL)return[];
+  const cfg=DL.Config_Corsi||[],oaS=DL.OA_Summary||[],oaR=DL.OA_Studenti||[],dls=DL.Brevo_Deals||[],gf=DL.Gravity_Forms||[],cal=DL.Calendly||[],mktg=DL.Mktg_ExEd||[],budgets=DL.Budget_Prodotti||[];
+
+  const sFk={};
+  for(const s of oaS){const k=nP(s.prodotto)+'-'+nI(s.intake||'');if(k==='-')continue;if(!sFk[k])sFk[k]={i:0,r:0,ch:{b2b:{i:0,r:0},b2c:{i:0,r:0},jakala:{i:0,r:0},referral:{i:0,r:0},partner:{i:0,r:0},free:{i:0,r:0}}};sFk[k].i+=(parseFloat(s.iscrittiUfficiali)||0);sFk[k].r+=(parseFloat(s.incassoUfficiale)||0);for(const ch of['b2b','b2c','jakala','referral','partner','free']){sFk[k].ch[ch].i+=(parseFloat(s[ch+'_iscritti'])||0);sFk[k].ch[ch].r+=(parseFloat(s[ch+'_incasso'])||0);}}
+
+  const oFk={};
+  for(const r of oaR){const k=nP(r.prodotto)+'-'+nI(r.intake||'');if(k==='-')continue;if(!oFk[k])oFk[k]=[];oFk[k].push(r);}
+
+  const dFk={};
+  for(const d of dls){const s=(d.sigla||'').toUpperCase().split('-');if(s.length>=3){const k=nP(s[0])+'-'+s[2];if(!dFk[k])dFk[k]=[];dFk[k].push(d);}}
+
+  const gFk={};
+  for(const g of gf){if(g.formTipo!=='candidatura')continue;const s=(g.codicecorso||'').toUpperCase().split('-');if(s.length>=3){const k=nP(s[0])+'-'+s[2];if(!gFk[k])gFk[k]=[];gFk[k].push(g);}}
+
+  const eFk={};
+  for(const g of gf){if(!g.email)continue;const s=(g.codicecorso||'').toUpperCase().split('-');if(s.length>=3)eFk[g.email.toLowerCase()]=nP(s[0])+'-'+s[2];}
+  for(const d of dls){if(!d.contactEmail)continue;const s=(d.sigla||'').toUpperCase().split('-');if(s.length>=3)eFk[d.contactEmail.toLowerCase()]=nP(s[0])+'-'+s[2];}
+
+  const now=new Date();
+  const cFk={};
+  for(const c of cal){let fk='';const cc=(c.utmContent||'').toUpperCase();if(cc){const p=cc.split('-');if(p.length>=3)fk=nP(p[0])+'-'+p[2];}if(!fk&&c.email)fk=eFk[c.email.toLowerCase()]||'';if(!fk)continue;if(!cFk[fk])cFk[fk]={a:[],p:[],f:[]};cFk[fk].a.push(c);const ed=c.evtStart?new Date(c.evtStart):null;if(ed&&ed<now)cFk[fk].p.push(c);else cFk[fk].f.push(c);}
+
+  // Indice Mktg_ExEd — ACCUMULA budgetSpeso se la stessa FK appare più volte
+  const mFk={};
+  for(const m of mktg){
+    const s=(m.sigla||'').toUpperCase().split('-');
+    let fk='';
+    if(s.length>=3)fk=nP(s[0])+'-'+s[2];
+    else fk=(m.sigla||'').toUpperCase();
+    if(!mFk[fk]){mFk[fk]={...m};}
+    else{
+      mFk[fk].budgetSpeso=(parseFloat(mFk[fk].budgetSpeso)||0)+(parseFloat(m.budgetSpeso)||0);
+      mFk[fk].budgetPianificato=(parseFloat(mFk[fk].budgetPianificato)||0)+(parseFloat(m.budgetPianificato)||0);
+      mFk[fk].leadAttesi=(parseFloat(mFk[fk].leadAttesi)||0)+(parseFloat(m.leadAttesi)||0);
+      mFk[fk].leadRicevuti=(parseFloat(mFk[fk].leadRicevuti)||0)+(parseFloat(m.leadRicevuti)||0);
+      mFk[fk].colloquiAttesi=(parseFloat(mFk[fk].colloquiAttesi)||0)+(parseFloat(m.colloquiAttesi)||0);
+      mFk[fk].colloquiFissati=(parseFloat(mFk[fk].colloquiFissati)||0)+(parseFloat(m.colloquiFissati)||0);
+      mFk[fk].iscrittiAttesi=(parseFloat(mFk[fk].iscrittiAttesi)||0)+(parseFloat(m.iscrittiAttesi)||0);
+      mFk[fk].iscrittiRicevuti=(parseFloat(mFk[fk].iscrittiRicevuti)||0)+(parseFloat(m.iscrittiRicevuti)||0);
+    }
+  }
+
+  const bFk={};
+  for(const b of budgets){const s=(b.sigla||'').toUpperCase().split('-');if(s.length>=3)bFk[nP(s[0])+'-'+s[2]]=b;else if(b.sigla)bFk[b.sigla.toUpperCase()]=b;}
+
+  _corsiCache = cfg.filter(c=>c.nome).map(c=>{
+    const sig=(c.sigla||'').toUpperCase(),prod=nP(c.siglaProdotto),intake=(c.intake||'').toUpperCase(),fk=prod+'-'+intake;
+    const sm=sFk[fk],oa=oFk[fk]||[],bd=dFk[fk]||[],ge=gFk[fk]||[],cl=cFk[fk]||{a:[],p:[],f:[]};
+    const iOA=sm?sm.i:oa.length,rOA=sm?Math.round(sm.r):oa.reduce((s,r)=>s+(parseFloat(r.prezzoPagato)||0),0);
+    const st={};bd.forEach(d=>{st[d.stage]=(st[d.stage]||0)+1;});
+    const tgt=parseFloat(c.target)||0,pct=tgt>0?Math.round(iOA/tgt*100):0;
+    const mk=mFk[sig]||mFk[fk]||{},bg=bFk[sig]||bFk[fk]||{};
+    const cf=parseFloat(bg.costiFissi)||0,cps=parseFloat(bg.costoPerStudente)||0,ct=cf>0?(cf+(cps*iOA)):0;
+    // v8: spend da campaigns API, NON da Mktg_ExEd
+    // Divide proportionalmente tra edizioni dello stesso prodotto
+    const mktgSpend = getSpendForProd(prod);
+    const edCountForProd = cfg.filter(cc => nP(cc.siglaProdotto) === prod).length || 1;
+    const mktgSpendPerEd = Math.round(mktgSpend / edCountForProd);
+    return {...c,sig,prod,intake,fk,iscrittiOA:iOA,revenueOA:rOA,target:tgt,pctTarget:pct,pricing:parseFloat(c.pricing)||0,revTarget:parseFloat(c.revenueTarget)||0,brevoDeals:bd,brevoStages:st,brevoWon:st['Closed Won']||0,gfEntries:ge,gfCount:ge.length,calAll:cl.a.length,calPast:cl.p.length,calFuture:cl.f.length,oaStudenti:oa,brochureCount:(DL.Gravity_Forms||[]).filter(g=>g.formTipo==='brochure'&&(g.codicecorso||'').toUpperCase().includes(prod)).length,leads:parseFloat(c.leads)||0,interviewsDone:parseFloat(c.interviewsDone)||0,mktgBudget:parseFloat(mk.budgetPianificato||c.mktgBudget)||0,mktgPaid:mktgSpendPerEd,leadAttesi:parseFloat(mk.leadAttesi)||0,leadRicevuti:parseFloat(mk.leadRicevuti)||parseFloat(c.leads)||0,colloquiAttesi:parseFloat(mk.colloquiAttesi)||0,colloquiFissati:parseFloat(mk.colloquiFissati)||parseFloat(c.interviewsDone)||0,iscrittiAttesi:parseFloat(mk.iscrittiAttesi)||0,cpl:parseFloat(mk.cpl)||0,cpa:parseFloat(mk.cpa)||0,costiFissi:cf,costoPerStudente:cps,costiTotali:ct,commissione:parseFloat(c.commissione)||0,channels:sm?sm.ch:{b2b:{i:0,r:0},b2c:{i:0,r:0},jakala:{i:0,r:0},referral:{i:0,r:0},partner:{i:0,r:0},free:{i:0,r:0}}};
+  });
+  return _corsiCache;
+}
+
+// ── CAMPAIGN HELPERS ────────────────────────────────────────────
+function getCampaignsForCorso(prod) {
+  if(!DL) return {meta:[], google:[]};
+  var mc = DL.Meta_Campaigns || [];
+  var gc = DL.GAds_Campaigns || [];
+  var metaC = mc.filter(function(c) { var s=(c.sigle||'').split(','); return s.some(function(x){return nP(x.trim())===prod;}); });
+  var googleC = gc.filter(function(c) { var s=(c.sigle||'').split(','); return s.some(function(x){return nP(x.trim())===prod;}); });
+  return {meta:metaC, google:googleC};
+}
+function getActiveCampaignCount(prod) {
+  var c = getCampaignsForCorso(prod);
+  return c.meta.filter(function(x){return x.status==='ACTIVE';}).length + c.google.filter(function(x){return x.status==='ENABLED';}).length;
+}
+function getGA4ForCorso(prod) {
+  if(!DL) return {pages:[], sourcePage:[]};
+  return {pages:(DL.GA4_Pages||[]).filter(function(p){return p.sigla===prod;}), sourcePage:(DL.GA4_SourcePage||[]).filter(function(p){return p.sigla===prod;})};
+}
+function getBrochureStats(prod) {
+  if(!DL) return {downloaded:0, converted:0};
+  var gf = DL.Gravity_Forms||[], brochureEmails = new Set();
+  gf.forEach(function(g){ if(g.formTipo!=='brochure'||!g.email) return; if((g.codicecorso||'').toUpperCase().includes(prod)) brochureEmails.add(g.email.toLowerCase()); });
+  var deals = DL.Brevo_Deals||[], converted = 0;
+  deals.forEach(function(d){ if(!d.contactEmail) return; var dp=(d.sigla||'').split('-')[0]||''; if(nP(dp)===prod && brochureEmails.has(d.contactEmail.toLowerCase())) converted++; });
+  return {downloaded:brochureEmails.size, converted:converted};
+}
+
+// v8: daily trend chart builder with proper Italian dates
+function buildDailyChart(mcd, prodFilter, courseStartDate) {
+  var byDate={};
+  mcd.forEach(function(r){
+    var d=(r.date||'').substring(0,10);if(!d||d.length<10)return;
+    if(prodFilter){var s=(r.sigle||'').split(',');if(!s.some(function(x){return nP(x.trim())===prodFilter;}))return;}
+    if(!byDate[d])byDate[d]={spend:0,leads:0,clicks:0};
+    byDate[d].spend+=parseFloat(r.spend)||0;
+    byDate[d].leads+=parseInt(r.leads)||0;
+    byDate[d].clicks+=parseInt(r.clicks)||0;
+  });
+  var dates=Object.keys(byDate).sort();
+  if(!dates.length)return'';
+  var maxSpend=Math.max.apply(null,dates.map(function(d){return byDate[d].spend;}))||1;
+  var courseStartD=courseStartDate?new Date(courseStartDate):null;
+  var campaignEndStr=courseStartD?new Date(courseStartD.getTime()-86400000).toISOString().split('T')[0]:'';
+  var barH=50,topPad=18,dateH=30,totalH=barH+topPad+dateH;
+  var h='<div style="position:relative;display:flex;gap:1px;height:'+totalH+'px;align-items:flex-end">';
+  dates.forEach(function(d,idx){
+    var s=byDate[d].spend,l=byDate[d].leads;
+    var ht=Math.max(2,Math.round(s/maxSpend*barH));
+    var dd=new Date(d+'T12:00:00Z');
+    var isMonday=dd.getUTCDay()===1;
+    var isFirst=dd.getUTCDate()===1;
+    var isEnd=d===campaignEndStr;
+    var sepStyle='';
+    if(isFirst)sepStyle='border-left:2px solid var(--text1);';
+    else if(isMonday)sepStyle='border-left:1px solid var(--border);';
+    if(isEnd)sepStyle='border-left:2px dashed var(--amber);';
+    h+='<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;'+sepStyle+'height:100%">';
+    // Lead count zone
+    h+='<div style="height:'+topPad+'px;display:flex;align-items:flex-end;justify-content:center">';
+    if(l>0)h+='<span style="font-family:var(--mono);font-size:8px;font-weight:700;color:var(--green)">'+l+'</span>';
+    h+='</div>';
+    // Bar
+    h+='<div style="width:100%;height:'+ht+'px;background:'+(l>0?'var(--green)':'var(--blue)')+';border-radius:2px 2px 0 0"></div>';
+    // Date label - Italian format GG/mm
+    var dayStr=String(dd.getUTCDate()).padStart(2,'0');
+    var monStr=String(dd.getUTCMonth()+1).padStart(2,'0');
+    var dateLabel=dayStr+'/'+monStr;
+    var isBold=isFirst?';font-weight:700;color:var(--text1)':'';
+    h+='<div style="height:'+dateH+'px;font-size:7px;color:var(--text3);writing-mode:vertical-lr;transform:rotate(180deg);overflow:hidden;white-space:nowrap'+isBold+'">'+dateLabel+'</div>';
+    h+='</div>';
+  });
+  h+='</div>';
+  h+='<div style="display:flex;gap:16px;font-size:11px;color:var(--text3);margin-top:4px"><span>■ <span style="color:var(--blue)">Spend</span></span><span>■ <span style="color:var(--green)">Giorni con lead</span></span>';
+  if(campaignEndStr)h+='<span>┆ <span style="color:var(--amber)">Fine prevista</span></span>';
+  h+='</div>';
+  return h;
+}
+// ── TAB P&L ──────────────────────────────────────────────────────
+let plFilter = 'all';
+function plStatus(c) {
+  const days = dTS(c);
+  if (!c.startDate || days > 0) return 'future';
+  if (c.iscrittiOA < 5) return 'not_started';
+  if ((c.tipo||'').toUpperCase() === 'RE') return 'done';
+  return 'active';
+}
+
+function renderPL() {
+  if(!DL){return;}
+  const ct = document.getElementById('pl-content');
+  const corsi = buildCorsi();
+  const mktg  = DL.Mktg_ExEd || [];
+  const cfgFks = new Set(corsi.map(c => c.fk));
+
+  // Orphan mktg from Mktg_ExEd
+  const orphanMktg = {};
+  for(const m of mktg) {
+    const s=(m.sigla||'').toUpperCase().split('-');
+    let fk='';
+    if(s.length>=3) fk=nP(s[0])+'-'+s[2];
+    else fk=(m.sigla||'').toUpperCase();
+    if(!cfgFks.has(fk)){
+      if(!orphanMktg[m.sigla])orphanMktg[m.sigla]=0;
+      orphanMktg[m.sigla]+=(parseFloat(m.budgetSpeso)||0);
+    }
+  }
+  // v8: Orphans from campaign spend
+  var corsiProds=new Set(corsi.map(c=>c.prod));
+  var BRAND_SIGLE={'BRAND':1,'EVENT':1};
+  var brandSpend=0;
+  (DL.Meta_Campaigns||[]).forEach(function(mc){
+    var s=(mc.sigle||'').split(',').filter(Boolean).map(function(x){return nP(x.trim());});
+    var spend=parseFloat(mc.spend)||0;if(spend<=0)return;
+    if(s.some(function(sig){return corsiProds.has(sig);}))return;
+    if(s.some(function(sig){return BRAND_SIGLE[sig];})){brandSpend+=spend;return;}
+    if(s.length>0){var key=s.join(',')+' ('+mc.campaignName.substring(0,30)+')';orphanMktg[key]=(orphanMktg[key]||0)+spend;}
+    else if(spend>50){orphanMktg[mc.campaignName.substring(0,40)]=(orphanMktg[mc.campaignName.substring(0,40)]||0)+spend;}
+  });
+  (DL.GAds_Campaigns||[]).forEach(function(gc){
+    var s=(gc.sigle||'').split(',').filter(Boolean).map(function(x){return nP(x.trim());});
+    var spend=parseFloat(gc.cost)||0;if(spend<=0)return;
+    if(s.some(function(sig){return corsiProds.has(sig);}))return;
+    if(s.some(function(sig){return BRAND_SIGLE[sig];})){brandSpend+=spend;return;}
+    if(s.length>0){var key=s.join(',')+' ('+gc.campaignName.substring(0,30)+')';orphanMktg[key]=(orphanMktg[key]||0)+spend;}
+    else if(spend>50){orphanMktg[gc.campaignName.substring(0,40)]=(orphanMktg[gc.campaignName.substring(0,40)]||0)+spend;}
+  });
+  for(var k in orphanMktg){if(orphanMktg[k]<50)delete orphanMktg[k];}
+  const orphanTotal = Object.values(orphanMktg).reduce((s,v)=>s+v,0) + brandSpend;
+
+  const intakeOrder = ['FA25','WI26','SP26','SU26'];
+  const intakeLabel = {FA25:'Fall 25',WI26:'Winter 26',SP26:'Spring 26',SU26:'Summer 26'};
+  const filtered = plFilter==='all' ? corsi : corsi.filter(c=>c.intake===plFilter);
+
+  const enriched = filtered.map(c=>{
+    const st = plStatus(c);
+    const partito = st==='done'||st==='active';
+    const costiProd = partito ? c.costiTotali : 0;
+    const costiMktg = c.mktgPaid||0;
+    const revenue   = c.revenueOA||0;
+    const margine   = revenue - costiProd - costiMktg;
+    const margPct   = revenue>0 ? Math.round(margine/revenue*100) : null;
+    return {...c, st, partito, costiProd, costiMktg, margine, margPct};
+  });
+
+  const totRev   = enriched.reduce((s,c)=>s+c.revenueOA,0);
+  const totProd  = enriched.reduce((s,c)=>s+c.costiProd,0);
+  const totMktgA = enriched.reduce((s,c)=>s+c.costiMktg,0) + (plFilter==='all'?orphanTotal:0);
+  const totNetto = totRev - totProd - totMktgA;
+
+  const stLabel  = {done:'Concluso',active:'In corso',future:'Futuro',not_started:'Non partito'};
+  const stColor  = {done:'var(--text3)',active:'var(--green)',future:'var(--blue)',not_started:'var(--red)'};
+  const stBg     = {done:'#e8e6e0',active:'var(--green-l)',future:'var(--blue-l)',not_started:'var(--red-l)'};
+  const tipoColors={RE:'#f59e0b',PM:'#3b82f6',IC:'#7c3aed',MB:'#22c55e',ME:'#10b981',SC:'#6366f1',SP:'#ec4899'};
+
+  let h = '';
+  // Filtri intake
+  h += '<div class="filters" style="margin-bottom:16px">';
+  h += '<div class="filter-pill '+(plFilter==='all'?'active':'')+'" onclick="plFilter=\'all\';renderPL()">Tutti</div>';
+  for(const intk of intakeOrder) h += '<div class="filter-pill '+(plFilter===intk?'active':'')+'" onclick="plFilter=\''+intk+'\';renderPL()">'+(intakeLabel[intk]||intk)+'</div>';
+  h += '</div>';
+
+  // Summary cards
+  const margCol = totNetto>=0?'var(--green)':'var(--red)';
+  h += '<div class="kpi-row" style="margin-bottom:24px">';
+  h += '<div class="kpi"><div class="kpi-label">Revenue totale</div><div class="kpi-value" style="color:var(--green)">'+fE(totRev)+'</div><div class="kpi-sub">Incasso O&A ufficiale</div></div>';
+  h += '<div class="kpi"><div class="kpi-label">Costi produzione</div><div class="kpi-value">'+fE(totProd)+'</div><div class="kpi-sub">Solo corsi partiti/in corso</div></div>';
+  h += '<div class="kpi"><div class="kpi-label">Costi marketing</div><div class="kpi-value">'+fE(totMktgA)+'</div><div class="kpi-sub">'+(plFilter==='all'&&orphanTotal>0?'Incl. '+fE(orphanTotal)+' non allocati':'Meta+GAds campaigns')+'</div></div>';
+  h += '<div class="kpi"><div class="kpi-label">Margine netto</div><div class="kpi-value" style="color:'+margCol+'">'+fE(totNetto)+'</div><div class="kpi-sub">'+(totRev>0?Math.round(totNetto/totRev*100)+'% su revenue':'—')+'</div></div>';
+  h += '</div>';
+
+  // v8: Tabella P&L con header merged
+  h += '<div style="overflow-x:auto"><table class="mtable" style="min-width:900px"><tbody>';
+  const byIntake = {};
+  for(const c of enriched){ const intk=c.intake||'OTHER'; if(!byIntake[intk])byIntake[intk]=[]; byIntake[intk].push(c); }
+  const orderedIntakes = intakeOrder.filter(i=>byIntake[i]).concat(Object.keys(byIntake).filter(i=>!intakeOrder.includes(i)));
+
+  // v8: header row merged with intake label
+  const plHeaders=function(intk){return '<tr style="background:#ddd8d0"><td colspan="2" style="font-weight:700;color:var(--text1);font-size:13px">'+(intakeLabel[intk]||intk||'')+'</td><td style="font-size:11px;font-weight:700;color:var(--text1)">Tipo</td><td style="font-size:11px;font-weight:700;color:var(--text1)">Stato</td><td style="font-size:11px;font-weight:700;color:var(--text1)">Start</td><td class="num" style="font-size:11px;font-weight:700;color:var(--text1)">Iscritti</td><td class="num" style="font-size:11px;font-weight:700;color:var(--text1)">Revenue</td><td class="num" style="font-size:11px;font-weight:700;color:var(--text1)">Produzione</td><td class="num" style="font-size:11px;font-weight:700;color:var(--text1)">Marketing</td><td class="num" style="font-size:11px;font-weight:700;color:var(--text1)">Margine</td><td class="num" style="font-size:11px;font-weight:700;color:var(--text1)">Marg %</td></tr>';};
+
+  for(const intk of orderedIntakes){
+    const rows = byIntake[intk].sort((a,b)=>b.margine-a.margine);
+    const sR=rows.reduce((s,c)=>s+c.revenueOA,0),sP=rows.reduce((s,c)=>s+c.costiProd,0),sM=rows.reduce((s,c)=>s+c.costiMktg,0),sN=sR-sP-sM;
+    h += plHeaders(intk);
+    for(const c of rows){
+      const mc = c.margine>=0?'var(--green)':'var(--red)';
+      const tipo=(c.tipo||'').toUpperCase().substring(0,2);
+      const days=dTS(c);
+      const startStr=c.startDate?fDshort(c.startDate):'—';
+      const futureNote=(c.st==='future'&&days>0&&days<999)?' <span style="font-size:11px;color:var(--text3)">(tra '+days+'gg)</span>':'';
+      const prodNote=!c.partito?'<span style="font-size:10px;color:var(--text3);margin-left:4px">'+(c.st==='future'?'proiettati':'non sost.')+'</span>':'';
+      h += '<tr>';
+      h += '<td style="font-family:var(--mono);font-size:12px;color:var(--text3)">'+c.sig+'</td>';
+      h += '<td style="font-weight:600;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+c.nome+'">'+c.nome+'</td>';
+      h += '<td><span style="background:'+(tipoColors[tipo]||'#9ca3af')+'22;color:'+(tipoColors[tipo]||'#9ca3af')+';border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700">'+tipo+'</span></td>';
+      h += '<td><span style="background:'+stBg[c.st]+';color:'+stColor[c.st]+';border-radius:12px;padding:3px 10px;font-size:11px;font-weight:700">'+stLabel[c.st]+'</span></td>';
+      h += '<td style="font-size:13px;white-space:nowrap">'+startStr+futureNote+'</td>';
+      h += '<td class="num">'+c.iscrittiOA+' <span style="color:var(--text3);font-size:11px">/ '+c.target+'</span></td>';
+      h += '<td class="num" style="color:var(--green)">'+fE(c.revenueOA)+'</td>';
+      h += '<td class="num">'+(c.costiProd>0?fE(c.costiProd):'<span style="color:var(--text3)">€0</span>')+prodNote+'</td>';
+      h += '<td class="num">'+(c.costiMktg>0?fE(c.costiMktg):'<span style="color:var(--text3)">€0</span>')+'</td>';
+      h += '<td class="num" style="color:'+mc+';font-weight:700">'+fE(c.margine)+'</td>';
+      h += '<td class="num" style="color:'+mc+';font-weight:700">'+(c.margPct!==null?c.margPct+'%':'—')+'</td>';
+      h += '</tr>';
+    }
+    const snC=sN>=0?'var(--green)':'var(--red)';
+    h += '<tr class="row-sub"><td colspan="5" style="font-size:12px">Subtotale '+(intakeLabel[intk]||intk)+'</td><td class="num">'+rows.reduce((s,c)=>s+c.iscrittiOA,0)+'</td><td class="num" style="color:var(--green)">'+fE(sR)+'</td><td class="num">'+fE(sP)+'</td><td class="num">'+fE(sM)+'</td><td class="num" style="color:'+snC+'">'+fE(sN)+'</td><td class="num" style="color:'+snC+'">'+(sR>0?Math.round(sN/sR*100)+'%':'—')+'</td></tr>';
+  }
+
+  // Totale generale
+  h += plHeaders('TOTALE GENERALE');
+  const tNC=totNetto>=0?'var(--green)':'var(--red)';
+  h += '<tr class="row-tot"><td colspan="5">TOTALE GENERALE</td><td class="num">'+enriched.reduce((s,c)=>s+c.iscrittiOA,0)+'</td><td class="num" style="color:var(--green)">'+fE(totRev)+'</td><td class="num">'+fE(totProd)+'</td><td class="num">'+fE(totMktgA)+'</td><td class="num" style="color:'+tNC+'">'+fE(totNetto)+'</td><td class="num" style="color:'+tNC+'">'+(totRev>0?Math.round(totNetto/totRev*100)+'%':'—')+'</td></tr>';
+
+  // v8: orphan (ambra) e brand (blu) separati
+  if(orphanTotal>0&&plFilter==='all'){
+    var orphanEntries = Object.entries(orphanMktg).filter(function(e){return e[1]>0;}).sort(function(a,b){return b[1]-a[1];});
+    if(orphanEntries.length>0){
+      var orphanDetail = orphanEntries.map(function(e){return e[0]+' '+fE(e[1]);}).join('  |  ');
+      h += '<tr style="background:var(--amber-l)"><td colspan="8" style="font-size:11px;color:var(--amber)">⚠ Mktg non allocato: <span style="color:var(--text3)">'+orphanDetail+'</span></td><td class="num" style="color:var(--amber);font-weight:700">'+fE(Object.values(orphanMktg).reduce(function(s,v){return s+v;},0))+'</td><td colspan="2"></td></tr>';
+    }
+    if(brandSpend>0){
+      h += '<tr style="background:var(--blue-l)"><td colspan="8" style="font-size:11px;color:var(--blue)">ℹ Brand/awareness spend (non allocabile a singolo corso)</td><td class="num" style="color:var(--blue);font-weight:700">'+fE(brandSpend)+'</td><td colspan="2"></td></tr>';
+    }
+  }
+  h += '</tbody></table></div>';
+
+  // Corsi futuri — scenari
+  const futuri = enriched.filter(c=>c.st==='future');
+  if(futuri.length>0){
+    const totFProd = futuri.reduce((s,c)=>s+c.costiTotali,0);
+    const totFMktg = futuri.reduce((s,c)=>s+c.costiMktg,0);
+    h += '<div style="margin-top:28px"><h3 style="font-size:16px;font-weight:700;margin-bottom:16px">Corsi futuri — scenari</h3>';
+    h += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin-bottom:16px">';
+    for(const c of futuri.sort((a,b)=>dTS(a)-dTS(b))){
+      const days=dTS(c);
+      const scenarioParte=c.revenueOA-c.costiTotali-c.costiMktg;
+      const scenarioNoParte=0-c.costiMktg;
+      h += '<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px"><div style="font-size:14px;font-weight:700;margin-bottom:4px">'+c.nome+'</div><div style="font-size:12px;color:var(--text3);margin-bottom:10px">'+(IF[c.intake]||c.intake)+'  |  '+(days>0&&days<999?'tra '+days+' gg':'data da definire')+'</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div style="background:var(--green-l);border-radius:var(--radius-sm);padding:10px"><div style="font-size:10px;font-weight:700;color:var(--green);margin-bottom:4px">✓ SE PARTE</div><div style="font-family:var(--mono);font-size:16px;font-weight:700;color:'+(scenarioParte>=0?'var(--green)':'var(--red)')+'">'+fE(scenarioParte)+'</div><div style="font-size:11px;color:var(--text3)">'+c.iscrittiOA+' iscritti att.</div></div><div style="background:var(--red-l);border-radius:var(--radius-sm);padding:10px"><div style="font-size:10px;font-weight:700;color:var(--red);margin-bottom:4px">✗ SE NON PARTE</div><div style="font-family:var(--mono);font-size:16px;font-weight:700;color:var(--red)">'+fE(scenarioNoParte)+'</div><div style="font-size:11px;color:var(--text3)">Solo mktg perso</div></div></div></div>';
+    }
+    h += '</div>';
+
+    // v8: scenario al 50% del target
+    h += '<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-top:16px"><div class="prod-section-title">Scenario — tutti i corsi futuri partono al 50% del target</div>';
+    h += '<table class="mtable"><thead><tr><th>Corso</th><th class="num">50% target</th><th class="num">Revenue stimata</th><th class="num">Produzione</th><th class="num">Marketing</th><th class="num">Margine</th><th class="num">%</th></tr></thead><tbody>';
+    var s50Rev=0,s50Prod=0,s50Mktg=0;
+    for(const c of futuri.sort((a,b)=>dTS(a)-dTS(b))){
+      var pax50=Math.ceil(c.target*0.5),rev50=pax50*c.pricing,prod50=c.costiFissi+(c.costoPerStudente*pax50),mktg50=c.costiMktg,marg50=rev50-prod50-mktg50,margPct50=rev50>0?Math.round(marg50/rev50*100):0;
+      s50Rev+=rev50;s50Prod+=prod50;s50Mktg+=mktg50;
+      h += '<tr><td style="font-size:12px">'+c.nome.substring(0,30)+'</td><td class="num">'+pax50+' / '+c.target+'</td><td class="num" style="color:var(--green)">'+fE(rev50)+'</td><td class="num">'+fE(prod50)+'</td><td class="num">'+fE(mktg50)+'</td><td class="num" style="color:'+(marg50>=0?'var(--green)':'var(--red)')+'">'+fE(marg50)+'</td><td class="num" style="color:'+(margPct50>=0?'var(--green)':'var(--red)')+'">'+margPct50+'%</td></tr>';
+    }
+    var s50N=s50Rev-s50Prod-s50Mktg,s50P=s50Rev>0?Math.round(s50N/s50Rev*100):0;
+    h += '<tr class="row-tot"><td>TOTALE @50%</td><td class="num"></td><td class="num" style="color:var(--green)">'+fE(s50Rev)+'</td><td class="num">'+fE(s50Prod)+'</td><td class="num">'+fE(s50Mktg)+'</td><td class="num" style="color:'+(s50N>=0?'var(--green)':'var(--red)')+'">'+fE(s50N)+'</td><td class="num" style="color:'+(s50P>=0?'var(--green)':'var(--red)')+'">'+s50P+'%</td></tr>';
+    h += '</tbody></table></div>';
+
+    h += '<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:16px">';
+    h += '<div><div style="font-size:12px;font-weight:700;color:var(--text3);margin-bottom:6px">COSTI EVITABILI SE NESSUN CORSO FUTURO PARTE</div><div style="font-family:var(--mono);font-size:22px;font-weight:700;color:var(--green)">'+fE(totFProd)+'</div><div style="font-size:12px;color:var(--text2)">Costi produzione non ancora sostenuti</div></div>';
+    h += '<div><div style="font-size:12px;font-weight:700;color:var(--text3);margin-bottom:6px">MKTG GIÀ SPESO SUI FUTURI (NON RECUPERABILE)</div><div style="font-family:var(--mono);font-size:22px;font-weight:700;color:var(--red)">'+fE(totFMktg)+'</div><div style="font-size:12px;color:var(--text2)">Sunk cost indipendente dalla partenza</div></div>';
+    h += '</div></div>';
+  }
+  ct.innerHTML = h;
+}
+
+// ── Render principale ────────────────────────────────────────────
+function renderAll(){const c=buildCorsi();renderFilters(c);renderPanoramica(c);renderInsights(c);renderQualita();renderMonitor();}
+function renderFilters(c){const ii=[...new Set(c.map(x=>x.edizione).filter(Boolean))];const ORDER=['FALL 24','FALL 25','WINTER 25','WINTER 26','SPRING 25','SPRING 26','SUMMER 25','SUMMER 26'];ii.sort((a,b)=>{const ia=ORDER.indexOf(a),ib=ORDER.indexOf(b);return (ia===-1?99:ia)-(ib===-1?99:ib);});document.getElementById('filters').innerHTML='<div class="filter-pill active" onclick="setFilter(\'all\',this)">Tutti</div>'+ii.map(i=>'<div class="filter-pill" onclick="setFilter(\''+i+'\',this)">'+(IF[IS[i]]||i)+'</div>').join('');}
+function setFilter(f,el){STATE.filter=f;document.querySelectorAll('.filter-pill').forEach(p=>p.classList.remove('active'));if(el)el.classList.add('active');renderPanoramica(buildCorsi());}
+function setSort(k){STATE.sortBy=STATE.sortBy===k?null:k;document.querySelectorAll('.kpi').forEach(x=>x.classList.toggle('active-sort',x.dataset.sort===STATE.sortBy));renderPanoramica(buildCorsi());}
+
+// ── TAB 1 — PANORAMICA ───────────────────────────────────────────
+function renderPanoramica(corsi) {
+  const f=STATE.filter;let v=f==='all'?corsi:corsi.filter(c=>c.edizione===f);
+  const ti=v.reduce((s,c)=>s+c.iscrittiOA,0),tt=v.reduce((s,c)=>s+c.target,0),tr=v.reduce((s,c)=>s+c.revenueOA,0),trt=v.reduce((s,c)=>s+c.revTarget,0);
+  const tgf=v.reduce((s,c)=>s+c.gfCount,0),tbr=v.reduce((s,c)=>s+c.brevoDeals.length,0),tc=v.reduce((s,c)=>s+c.calAll,0),tcp=v.reduce((s,c)=>s+c.calPast,0),tcf=v.reduce((s,c)=>s+c.calFuture,0);
+  const pt=tt>0?Math.round(ti/tt*100):0,rp=trt>0?Math.round(tr/trt*100):0;
+  // v8: spend reale da API campaigns
+  const realMktgCost=getRealSpend();
+  const zr=v.filter(c=>c.pctTarget<70&&dTS(c)>0&&dTS(c)<=45);
+  document.getElementById('kpi-row').innerHTML=
+    '<div class="kpi" data-sort="iscritti" onclick="setSort(\'iscritti\')"><div class="kpi-label">Iscritti (O&A)</div><div class="kpi-value" style="color:var(--green)">'+ti+'</div><div class="kpi-sub">Target: '+tt+' — '+pt+'%</div></div>'+
+    '<div class="kpi" data-sort="revenue" onclick="setSort(\'revenue\')"><div class="kpi-label">Revenue (O&A)</div><div class="kpi-value">'+fE(tr)+'</div><div class="kpi-sub">'+fEk(trt)+' tgt — '+rp+'%</div></div>'+
+    '<div class="kpi" data-sort="candidature" onclick="setSort(\'candidature\')"><div class="kpi-label">Candidature (GF+BR)</div><div class="kpi-value">'+(tgf+tbr)+'</div><div class="kpi-sub">Form: '+tgf+' — Brevo: '+tbr+'</div></div>'+
+    '<div class="kpi" data-sort="colloqui" onclick="setSort(\'colloqui\')"><div class="kpi-label">Colloqui (Calendly)</div><div class="kpi-value" style="color:var(--purple)">'+tc+'</div><div class="kpi-sub">Passati: '+tcp+' — Futuri: '+tcf+'</div></div>'+
+    '<div class="kpi" data-sort="mktg" onclick="setSort(\'mktg\')"><div class="kpi-label">Speso Marketing</div><div class="kpi-value">'+fEk(realMktgCost)+'</div><div class="kpi-sub">Meta+GAds campaigns</div></div>'+
+    '<div class="kpi" data-sort="zonarossa" onclick="setSort(\'zonarossa\')"><div class="kpi-label">Zona rossa</div><div class="kpi-value" style="color:'+(zr.length>0?'var(--red)':'var(--green)')+'">'+zr.length+'</div><div class="kpi-sub">&lt;45gg e &lt;70% target</div></div>';
+  let sorted=[...v];
+  if(STATE.sortBy==='iscritti')sorted.sort((a,b)=>b.iscrittiOA-a.iscrittiOA);
+  else if(STATE.sortBy==='revenue')sorted.sort((a,b)=>b.revenueOA-a.revenueOA);
+  else if(STATE.sortBy==='candidature')sorted.sort((a,b)=>(b.gfCount+b.brevoDeals.length)-(a.gfCount+a.brevoDeals.length));
+  else if(STATE.sortBy==='colloqui')sorted.sort((a,b)=>b.calAll-a.calAll);
+  else if(STATE.sortBy==='attivi')sorted=sorted.filter(c=>{const s=cSt(c);return s==='selling'||s==='active';});
+  else if(STATE.sortBy==='zonarossa')sorted=sorted.filter(c=>c.pctTarget<70&&dTS(c)>0&&dTS(c)<=45);
+  else sorted.sort((a,b)=>{const az=a.pctTarget<70&&dTS(a)>0&&dTS(a)<=45,bz=b.pctTarget<70&&dTS(b)>0&&dTS(b)<=45;if(az!==bz)return az?-1:1;return a.pctTarget-b.pctTarget;});
+  const grid=document.getElementById('corso-grid');
+  if(!sorted.length){grid.innerHTML='<div class="empty-state"><h3>Nessun corso</h3></div>';return;}
+  grid.innerHTML=sorted.map(c=>{
+    const days=dTS(c),isZR=c.pctTarget<70&&days>0&&days<=45,bc=bC(c.pctTarget),il=IF[c.intake]||c.edizione||c.intake,sd=c.startDate?fD(c.startDate):'',dOk=c.iscrittiOA>0||c.target>0;
+    const bePrice=c.pricing>0?(c.pricing-(c.costoPerStudente||0)):0,beStudents=bePrice>0&&c.costiFissi>0?Math.ceil(c.costiFissi/bePrice):0,bePct=c.target>0&&beStudents>0?Math.round(beStudents/c.target*100):-1;
+    const fs=[{l:'Candidature',v:c.gfCount+c.brevoDeals.length,c:'var(--blue)'},{l:'Colloqui',v:c.calAll,c:'var(--purple)'},{l:'Won',v:c.brevoWon,c:'var(--hfarm)'},{l:'Iscritti',v:c.iscrittiOA,c:'var(--green)'}];
+    const fm=Math.max(...fs.map(s=>s.v),1),hF=fs.some(s=>s.v>0);
+    const rl=c.revenueOA>0||c.revTarget>0?'<div class="rev-line"><b>'+fE(c.revenueOA)+'</b> / '+fEk(c.revTarget)+(c.revTarget>0?' — '+Math.round(c.revenueOA/c.revTarget*100)+'%':'')+'</div>':'';
+    const stInfo=cSt(c),stL=stInfo==='selling'?'In vendita':stInfo==='active'?'In corso':'Concluso',stC=stInfo==='selling'?'ed-status-selling':stInfo==='active'?'ed-status-active':'ed-status-done';
+    return '<div class="corso-card '+(isZR?'zona-rossa':'')+'" style="border-left-color:'+bc+'">'+
+      '<div class="corso-name">'+c.nome+'</div>'+
+      (isZR?'<div class="corso-zr">⚑ ZONA ROSSA — '+days+'gg al via - '+c.pctTarget+'% target</div>':'')+
+      '<div class="corso-meta"><span class="corso-tag tag-intake">'+il+'</span><span class="corso-tag tag-tipo">'+(c.tipo||'')+'</span><span class="corso-tag '+stC+'">'+stL+'</span>'+(function(){var ac=getActiveCampaignCount(c.prod);return ac>0?'<span class="corso-tag" style="background:#dbeafe;color:#1d4ed8">'+ac+' mktg</span>':'';})()+(dOk?'<span class="corso-tag tag-ok">Dati OK</span>':'<span class="corso-tag tag-warn">Dati mancanti</span>')+'</div>'+
+      '<div class="corso-date">'+(sd?sd+' — ':'')+(days>0?'<b>'+days+'gg al via</b>':days===0?'<b>Oggi</b>':'<b>In corso</b>')+(c.pricing>0?'  |  <span style="font-family:var(--mono);font-weight:600">'+fE(c.pricing)+'/persona</span>':'')+'</div>'+
+      '<div class="prog"><div class="prog-top"><span class="prog-label">Iscritti (O&A)</span><div class="prog-nums"><span class="prog-iscritti" style="color:'+bc+'">'+c.iscrittiOA+'</span><span class="prog-target">/ '+c.target+'</span><span class="prog-pct" style="color:'+bc+'">'+c.pctTarget+'%</span></div></div>'+
+      '<div class="prog-bar"><div class="prog-fill" style="width:'+Math.min(c.pctTarget,100)+'%;background:'+bc+'"></div>'+(bePct>0&&bePct<=100?'<div class="prog-marker" style="left:'+bePct+'%" title="Breakeven: '+beStudents+' studenti"></div>':'')+'</div></div>'+
+      rl+
+      (hF?'<div class="funnel" style="height:48px;margin:8px 0 4px">'+fs.map((s,i)=>{const h=Math.max(3,Math.round(s.v/fm*36));const p=i>0&&fs[i-1].v>0?Math.round(s.v/fs[i-1].v*100)+'%':'';return'<div class="funnel-step"><div class="funnel-bar" style="height:'+h+'px;background:'+s.c+'"></div><div class="funnel-info"><span class="funnel-num" style="font-size:13px">'+s.v+(p?' — '+p:'')+'</span></div><div class="funnel-lbl" style="font-size:9px">'+s.l+'</div></div>';}).join('')+'</div>':'')+
+      '</div>';
+  }).join('');
+}
+// ── TAB 2 — PER PRODOTTO ─────────────────────────────────────────
+function populateProdSelect(){const c=buildCorsi(),p={};for(const x of c){if(!p[x.nome])p[x.nome]=[];p[x.nome].push(x);}const s=document.getElementById('prod-select'),pv=s.value;s.innerHTML='<option value="">— seleziona prodotto —</option>'+Object.keys(p).sort().map(n=>'<option value="'+encodeURIComponent(n)+'">'+n+'</option>').join('');if(pv)s.value=pv;}
+
+function renderProdotto() {
+  const sel=document.getElementById('prod-select'),nome=sel?decodeURIComponent(sel.value):'',ct=document.getElementById('prod-detail');
+  if(!nome||!DL){ct.innerHTML='<div class="empty-state"><h3>Seleziona un prodotto</h3></div>';return;}
+  const corsi=buildCorsi().filter(c=>c.nome===nome);
+  if(!corsi.length){ct.innerHTML='<div class="empty-state"><h3>Non trovato</h3></div>';return;}
+  const tipo=TL[corsi[0].tipo]||corsi[0].tipo||'',ti=corsi.reduce((s,c)=>s+c.iscrittiOA,0),tr=corsi.reduce((s,c)=>s+c.revenueOA,0);
+  const allStatuses=corsi.map(c=>cSt(c)),prodStatus=allStatuses.includes('active')?'In corso':allStatuses.includes('selling')?'In vendita':'Concluso',prodStC=prodStatus==='In vendita'?'ed-status-selling':prodStatus==='In corso'?'ed-status-active':'ed-status-done';
+  var totCostiProd=corsi.reduce((s,c)=>s+c.costiTotali,0);
+  var totMktgProd=getSpendForProd(corsi[0].prod);
+  var margineProd=tr>0?Math.round((tr-totCostiProd-totMktgProd)/tr*100):0;
+  let h='<div class="prod-header"><div style="display:flex;align-items:center;gap:10px"><div class="prod-title">'+nome+'</div><span class="ed-status '+prodStC+'">'+prodStatus+'</span></div><div class="prod-subtitle">'+tipo+'  |  '+corsi.length+' edizion'+(corsi.length>1?'i':'e')+'  |  '+ti+' iscritti  |  '+fE(tr)+' revenue  |  <span style="color:'+(margineProd>=0?'var(--green)':'var(--red)')+'">'+margineProd+'% margine</span></div></div>';
+
+  // Edizioni
+  h+='<div class="prod-section"><div class="prod-section-title">Edizioni</div><div class="ed-row">';
+  const chKeys2=['b2b','b2c','jakala','referral','partner','free'],chColors2=['#2563eb','#7c3aed','#f59e0b','#22c55e','#60a5fa','#9ca3af'],chLab2=['B2B','B2C','JAK','REF','PAR','FREE'];
+  for(const c of corsi){
+    const il=IF[c.intake]||c.edizione||c.intake,bc=bC(c.pctTarget),st=cSt(c),stL=st==='selling'?'In vendita':st==='active'?'In corso':'Concluso',stC=st==='selling'?'ed-status-selling':st==='active'?'ed-status-active':'ed-status-done';
+    const cv=c.leadRicevuti>0?(c.iscrittiOA/c.leadRicevuti*100).toFixed(1)+'%':'—',isSel=STATE.selectedEdition===c.intake;
+    const rit=calcRitardo(c.fk);
+    const ritBadge=(label,inRitardo)=>inRitardo?'<span style="background:var(--red-l);color:var(--red);border-radius:4px;font-size:10px;font-weight:700;padding:2px 6px">↓ '+label+'</span> ':'';
+    const totChI2=chKeys2.reduce((s,k)=>s+(c.channels[k]?.i||0),0);
+    let chBarHTML='';
+    if(totChI2>0){chBarHTML='<div style="margin-top:6px"><div style="font-size:10px;color:var(--text3);margin-bottom:3px">Canali</div><div style="display:flex;height:10px;border-radius:4px;overflow:hidden;gap:1px">';chKeys2.forEach((k,i)=>{const v=c.channels[k]?.i||0;if(v>0){var pct=Math.round(v/totChI2*100);chBarHTML+='<div style="width:'+pct+'%;background:'+chColors2[i]+'" title="'+chLab2[i]+': '+v+'"></div>';}});chBarHTML+='</div><div style="display:flex;margin-top:2px">';chKeys2.forEach((k,i)=>{const v=c.channels[k]?.i||0;if(v>0){var pct=Math.round(v/totChI2*100);chBarHTML+='<div style="width:'+pct+'%;text-align:center;font-size:9px;color:'+chColors2[i]+';font-weight:700;overflow:hidden;white-space:nowrap">'+chLab2[i]+' '+v+'</div>';}});chBarHTML+='</div></div>';}
+    h+='<div class="ed-card" style="cursor:pointer;border:2px solid '+(isSel?'var(--hfarm)':'transparent')+'" onclick="STATE.selectedEdition=STATE.selectedEdition===\''+c.intake+'\'?null:\''+c.intake+'\';renderProdotto()"><div class="ed-label">'+il+'</div><span class="ed-status '+stC+'">'+stL+'</span><div class="ed-big" style="color:'+bc+'">'+c.iscrittiOA+'<span style="font-size:13px;color:var(--text3);font-weight:400"> / '+c.target+'</span></div><div class="prog-bar" style="margin:6px 0"><div class="prog-fill" style="width:'+Math.min(c.pctTarget,100)+'%;background:'+bc+'"></div></div><div style="font-size:12px;font-family:var(--mono);color:'+bc+';font-weight:600">'+c.pctTarget+'%</div><div class="ed-stat">Revenue: '+fE(c.revenueOA)+'</div><div class="ed-stat">Lead→Iscritto: '+cv+'</div><div class="ed-stat">'+c.gfCount+' GF  |  '+c.calAll+' colloqui  |  '+c.brevoWon+' won</div><div class="ed-stat">'+c.brochureCount+' brochure</div>'+(c.mktgPaid>0?'<div class="ed-mktg">CPL '+fE(c.cpl)+'  |  CPA '+fE(c.cpa)+'  |  Speso '+fE(c.mktgPaid)+'</div>':'')+chBarHTML+(rit&&rit.hasData?'<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:3px">'+ritBadge('Lead',rit.leadRitardo)+ritBadge('Colloqui',rit.colloquiRitardo)+ritBadge('Iscritti',rit.iscrittiRitardo)+((!rit.leadRitardo&&!rit.colloquiRitardo&&!rit.iscrittiRitardo)?'<span style="background:var(--green-l);color:var(--green);border-radius:4px;font-size:10px;font-weight:700;padding:2px 6px">✓ In linea</span>':'')+'</div>':'')+'</div>';
+  }
+  h+='</div></div>';
+  const filteredCorsi=STATE.selectedEdition?corsi.filter(c=>c.intake===STATE.selectedEdition):corsi;
+
+  // Funnel
+  h+='<div class="prod-section"><div class="prod-section-title">Funnel di conversione'+(STATE.selectedEdition?' — '+(IF[STATE.selectedEdition]||STATE.selectedEdition):'')+'</div>';
+  const mkFunnel=(steps,mx)=>'<div class="funnel" style="height:100px">'+steps.map((s,i)=>{const ht=Math.max(4,Math.round(s.v/mx*88)),p=i>0&&steps[i-1].v>0?Math.round(s.v/steps[i-1].v*100)+'%':'';return'<div class="funnel-step"><div class="funnel-bar" style="height:'+ht+'px;background:'+s.c+'"></div><div class="funnel-info"><span class="funnel-num">'+s.v+(p?' — '+p:'')+'</span></div><div class="funnel-lbl">'+s.l+'</div></div>';}).join('')+'</div>';
+  for(const c of filteredCorsi){
+    const il=IF[c.intake]||c.intake;
+    const stepsA=[{l:'Lead att.',v:Math.round(c.leadAttesi),c:'var(--blue)'},{l:'Coll. att.',v:Math.round(c.colloquiAttesi),c:'var(--purple)'},{l:'Contr. att.',v:Math.round(c.colloquiAttesi*0.5),c:'var(--amber)'},{l:'Iscr. att.',v:Math.round(parseFloat(c.iscrittiAttesi)||c.target),c:'var(--green)'}];
+    const stepsR=[{l:'Lead reali',v:c.gfCount+c.brevoDeals.length,c:'var(--blue)'},{l:'Colloqui',v:c.calAll,c:'var(--purple)'},{l:'Contr. inv.',v:c.brevoStages['Contract pending']||0,c:'var(--amber)'},{l:'Iscritti',v:c.iscrittiOA,c:'var(--green)'}];
+    const mxAll=Math.max(...stepsA.map(s=>s.v),...stepsR.map(s=>s.v),1);
+    h+='<div style="margin-bottom:20px"><div style="font-size:14px;font-weight:700;margin-bottom:10px">'+il+'</div><div style="display:grid;grid-template-columns:1fr 1px 1fr;gap:16px"><div><div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:6px">Attesi</div>'+mkFunnel(stepsA,mxAll)+'</div><div style="background:var(--border);"></div><div><div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:6px">Reali</div>'+mkFunnel(stepsR,mxAll)+'</div></div></div>';
+  }
+  h+='</div>';
+
+  // Campagne digitali
+  var allCampsForProd = getCampaignsForCorso(corsi[0].prod);
+  if(allCampsForProd.meta.length>0||allCampsForProd.google.length>0) {
+    h += '<div class="prod-section"><div class="prod-section-title">Campagne digitali — '+(allCampsForProd.meta.length+allCampsForProd.google.length)+' campagne</div>';
+    var allProdCamps = allCampsForProd.meta.concat(allCampsForProd.google.map(function(g){return {campaignName:g.campaignName,status:g.status==='ENABLED'?'ACTIVE':'PAUSED',startTime:g.startTime||'',spend:g.cost,clicks:g.clicks,impressions:g.impressions,leads:g.conversions,cpl:g.conversions>0?Math.round(parseFloat(g.cost)/parseFloat(g.conversions)):0,platform:'Google'};}));
+    allProdCamps.forEach(function(c){if(!c.platform)c.platform='Meta';});
+    var activeCamps=allProdCamps.filter(function(c){return c.status==='ACTIVE';}),pausedCamps=allProdCamps.filter(function(c){return c.status!=='ACTIVE';});
+    if(activeCamps.length){
+      h+='<div style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:8px">ATTIVE ('+activeCamps.length+')</div><table class="mtable"><thead><tr><th>Campagna</th><th>Platform</th><th class="num">Inizio</th><th class="num">Spend</th><th class="num">Click</th><th class="num">Lead</th><th class="num">CPL</th></tr></thead><tbody>';
+      activeCamps.forEach(function(c){var cplCol=(parseFloat(c.cpl)||0)<20?'var(--green)':(parseFloat(c.cpl)||0)<40?'var(--amber)':'var(--red)';h+='<tr><td style="font-size:12px">'+c.campaignName.substring(0,40)+'</td><td style="font-size:11px">'+c.platform+'</td><td class="num" style="font-size:11px">'+fDshort(c.startTime)+'</td><td class="num">'+fE(parseFloat(c.spend))+'</td><td class="num">'+parseInt(c.clicks||0)+'</td><td class="num" style="font-weight:700">'+parseInt(c.leads||0)+'</td><td class="num" style="color:'+cplCol+';font-weight:700">'+(parseInt(c.leads||0)>0?fE(parseFloat(c.cpl)):'—')+'</td></tr>';});
+      h+='</tbody></table>';
+    }
+    // Daily trend
+    var mcd=DL.Meta_Campaign_Daily||[];
+    if(mcd.length>0){
+      var courseStartDate='';for(var fc of filteredCorsi){if(fc.startDate){courseStartDate=fc.startDate;break;}}
+      h+='<div style="margin-top:12px"><div style="font-size:12px;font-weight:700;color:var(--text3);margin-bottom:6px">TREND GIORNALIERO</div>'+buildDailyChart(mcd,corsi[0].prod,courseStartDate)+'</div>';
+    }
+    if(pausedCamps.length){var tPS=0,tPL=0;pausedCamps.forEach(function(c){tPS+=parseFloat(c.spend)||0;tPL+=parseInt(c.leads||0);});h+='<div style="margin-top:12px;font-size:12px;color:var(--text3)"><b>'+pausedCamps.length+' campagne in pausa</b> — '+fE(tPS)+' spesi, '+tPL+' lead storici</div>';}
+    h+='</div>';
+  }
+
+  // GA4
+  var ga4Data=getGA4ForCorso(corsi[0].prod);
+  if(ga4Data.pages.length>0){
+    var totalSess=ga4Data.pages.reduce(function(s,p){return s+parseInt(p.sessions||0);},0);
+    h+='<div class="prod-section"><div class="prod-section-title">Traffico sito — '+totalSess+' sessioni</div>';
+    ga4Data.pages.forEach(function(p){h+='<div style="font-size:13px;margin-bottom:4px"><span style="font-family:var(--mono);font-size:12px;color:var(--text3)">'+p.pagePath+'</span> — <b>'+parseInt(p.sessions)+'</b> sessioni, '+parseInt(p.users)+' utenti, engagement '+Math.round(parseFloat(p.engagementRate||0)*100)+'%</div>';});
+    if(ga4Data.sourcePage.length>0){var srcMax=Math.max.apply(null,ga4Data.sourcePage.map(function(s){return parseInt(s.sessions)||0;}))||1;h+='<div style="margin-top:10px;font-size:12px;font-weight:700;color:var(--text3);margin-bottom:6px">PER CANALE</div>';ga4Data.sourcePage.sort(function(a,b){return(parseInt(b.sessions)||0)-(parseInt(a.sessions)||0);}).slice(0,8).forEach(function(s){var w=Math.round((parseInt(s.sessions)||0)/srcMax*100);h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:3px"><span style="font-size:12px;min-width:140px;color:var(--text2)">'+s.source+'/'+s.medium+'</span><div style="flex:1;height:6px;background:var(--border-l);border-radius:3px"><div style="height:100%;width:'+w+'%;background:var(--blue);border-radius:3px"></div></div><span style="font-family:var(--mono);font-size:11px;min-width:30px;text-align:right">'+parseInt(s.sessions)+'</span></div>';});}
+    h+='</div>';
+  }
+
+  // Brochure
+  var brStats=getBrochureStats(corsi[0].prod);
+  if(brStats.downloaded>0){var convPct=brStats.downloaded>0?Math.round(brStats.converted/brStats.downloaded*100):0;h+='<div class="prod-section"><div class="prod-section-title">Download brochure</div><div style="display:flex;gap:24px;align-items:center"><div><span style="font-family:var(--mono);font-size:28px;font-weight:700;color:var(--blue)">'+brStats.downloaded+'</span><div style="font-size:12px;color:var(--text3)">download</div></div><div><span style="font-family:var(--mono);font-size:28px;font-weight:700;color:'+(convPct>10?'var(--green)':'var(--amber)')+'">'+convPct+'%</span><div style="font-size:12px;color:var(--text3)">diventati deal ('+brStats.converted+')</div></div></div></div>';}
+
+  // Pipeline Brevo
+  const ad=filteredCorsi.flatMap(c=>c.brevoDeals);
+  if(ad.length>0){const ss={};ad.forEach(d=>{ss[d.stage]=(ss[d.stage]||0)+1;});h+='<div class="prod-section"><div class="prod-section-title">Pipeline Brevo — '+ad.length+' deal</div><div class="stage-row">'+Object.entries(ss).map(([s,n])=>'<span class="stage-badge" style="background:'+(SC[s]||'#9ca3af')+'">'+s+' '+n+'</span>').join('')+'</div></div>';}
+
+  // Marginalità
+  const wc=filteredCorsi.filter(c=>c.costiTotali>0||c.revenueOA>0||c.mktgPaid>0);
+  if(wc.length){
+    const colDel=pct=>pct>50?'cell-bad':pct<30?'cell-good':'',colM=n=>n>=0?'cell-good':'cell-bad';
+    h+='<div class="prod-section"><div class="prod-section-title">Marginalità</div><table class="mtable"><thead><tr><th>Edizione</th><th class="num">Revenue</th><th class="num">Fissi</th><th class="num">Var×pax</th><th class="num">Delivery</th><th class="num">% Del</th><th class="num">Margine</th><th class="num">Mktg</th><th class="num">% Mktg</th><th class="num">Netto</th><th class="num">% Netto</th></tr></thead><tbody>';
+    let totR=0,totD=0,totM=0;
+    for(const c of wc){const del=c.costiTotali,mktg=c.mktgPaid||0,delPct=c.revenueOA>0?Math.round(del/c.revenueOA*100):0,mktgPct=c.revenueOA>0?Math.round(mktg/c.revenueOA*100):0,marg=c.revenueOA-del,margPct=c.revenueOA>0?Math.round(marg/c.revenueOA*100):0,netto=marg-mktg,nettoPct=c.revenueOA>0?Math.round(netto/c.revenueOA*100):0;totR+=c.revenueOA;totD+=del;totM+=mktg;
+      h+='<tr><td>'+(IF[c.intake]||c.intake)+'</td><td class="num" style="color:var(--green)">'+fE(c.revenueOA)+'</td><td class="num">'+fE(c.costiFissi)+'</td><td class="num">'+fE(c.costoPerStudente)+'×'+c.iscrittiOA+'</td><td class="num">'+fE(del)+'</td><td class="num '+colDel(delPct)+'">'+delPct+'%</td><td class="num '+colM(marg)+'">'+margPct+'%</td><td class="num">'+fE(mktg)+'</td><td class="num">'+mktgPct+'%</td><td class="num '+colM(netto)+'">'+fE(netto)+'</td><td class="num '+colM(netto)+'">'+nettoPct+'%</td></tr>';}
+    if(wc.length>1){const totMarg=totR-totD,tDP=totR>0?Math.round(totD/totR*100):0,tMP=totR>0?Math.round(totM/totR*100):0,tN=totMarg-totM,tNP=totR>0?Math.round(tN/totR*100):0;h+='<tr class="row-tot"><td colspan="4">Totale</td><td class="num">'+fE(totD)+'</td><td class="num '+colDel(tDP)+'">'+tDP+'%</td><td class="num '+colM(totMarg)+'">'+Math.round(totMarg/totR*100||0)+'%</td><td class="num">'+fE(totM)+'</td><td class="num">'+tMP+'%</td><td class="num '+colM(tN)+'">'+fE(tN)+'</td><td class="num '+colM(tN)+'">'+tNP+'%</td></tr>';}
+    h+='</tbody></table></div>';
+  }
+
+  // Valutazioni
+  const fb=DL.Feedback||[],cn=nome.toLowerCase();
+  const cfb=fb.filter(f=>(parseFloat(f.media)||0)>0&&((f.courseName||'').toLowerCase().includes(cn.substring(0,10))||(f.prodotto||'').toLowerCase().includes(cn.substring(0,10))));
+  if(cfb.length){
+    const avg=cfb.reduce((s,f)=>s+(parseFloat(f.media)||0),0)/cfb.length;
+    const scF=v=>v>=4.5?'var(--green)':v>=3.5?'var(--amber)':'var(--red)';
+    const barF=(lbl,val)=>val>0?'<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px"><span style="font-size:12px;min-width:80px;color:var(--text2)">'+lbl+'</span><div style="flex:1;height:5px;background:var(--border-l);border-radius:3px"><div style="height:100%;width:'+(val/5*100)+'%;background:'+scF(val)+';border-radius:3px"></div></div><span style="font-family:var(--mono);font-size:12px;font-weight:600;color:'+scF(val)+'">'+val.toFixed(1)+'</span></div>':'';
+    h+='<div class="prod-section"><div class="prod-section-title">Valutazioni — media '+avg.toFixed(1)+'/5</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">';
+    for(const f of cfb.sort((a,b)=>(parseFloat(b.media)||0)-(parseFloat(a.media)||0))){
+      const m=parseFloat(f.media)||0,col=scF(m);
+      let docs='';if(f.docente1Nome&&(parseFloat(f.docente1Voto)||0)>0)docs+='<div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:var(--text2)">'+f.docente1Nome+'</span><span style="font-family:var(--mono);font-weight:700;color:'+scF(parseFloat(f.docente1Voto))+'">'+parseFloat(f.docente1Voto).toFixed(1)+'</span></div>';
+      if(f.docente2Nome&&(parseFloat(f.docente2Voto)||0)>0)docs+='<div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:var(--text2)">'+f.docente2Nome+'</span><span style="font-family:var(--mono);font-weight:700;color:'+scF(parseFloat(f.docente2Voto))+'">'+parseFloat(f.docente2Voto).toFixed(1)+'</span></div>';
+      h+='<div style="background:var(--bg);border-radius:var(--radius-sm);padding:12px;border-left:3px solid '+col+'"><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:13px;font-weight:600">'+(f.prodotto||f.nome)+'</span><span style="font-family:var(--mono);font-size:18px;font-weight:700;color:'+col+'">'+m.toFixed(1)+'</span></div><div style="font-size:11px;color:var(--text3);margin-bottom:6px">'+fD(f.dataEvento||'')+'  |  '+(f.numRisposte||0)+' risposte</div>'+barF('Contenuti',parseFloat(f.contenuti)||0)+barF('Docenti',parseFloat(f.docenti)||0)+barF('Logistica',parseFloat(f.logistica)||0)+(docs?'<div style="margin-top:6px;padding-top:4px;border-top:1px solid var(--border-l)"><div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;margin-bottom:3px">Docenti</div>'+docs+'</div>':'')+'</div>';
+    }
+    h+='</div></div>';
+  }
+
+  // Canali acquisizione
+  h+='<div class="prod-section"><div class="prod-section-title">Diagnostica — Canale di acquisizione</div>';
+  const chKeys=['b2b','b2c','jakala','referral','partner','free'],chColors=['#2563eb','#7c3aed','#f59e0b','#22c55e','#60a5fa','#9ca3af'],chLabels=['B2B','B2C','JAKALA','REFERRAL','PARTNER','FREE'];
+  const chTotI={},chTotR={};chKeys.forEach(k=>{chTotI[k]=0;chTotR[k]=0;});for(const c of corsi){chKeys.forEach(k=>{chTotI[k]+=c.channels[k].i;chTotR[k]+=c.channels[k].r;});}
+  const totChI=chKeys.reduce((s,k)=>s+chTotI[k],0);
+  if(totChI>0){
+    h+='<div style="margin-bottom:16px"><div style="font-size:12px;font-weight:700;color:var(--text3);margin-bottom:8px">ISCRITTI PER CANALE</div><div style="display:flex;height:24px;border-radius:6px;overflow:hidden;margin-bottom:4px">';
+    chKeys.forEach((k,i)=>{const v=chTotI[k];if(v>0){const pct=Math.round(v/totChI*100);h+='<div style="width:'+pct+'%;background:'+chColors[i]+';display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;min-width:20px" title="'+chLabels[i]+': '+v+' ('+pct+'%)">'+pct+'%</div>';}});
+    // v8: labels aligned under segments
+    h+='</div><div style="display:flex">';
+    chKeys.forEach((k,i)=>{const v=chTotI[k];if(v>0){const pct=Math.round(v/totChI*100);h+='<div style="width:'+pct+'%;text-align:center;font-size:10px;color:'+chColors[i]+';font-weight:700">'+chLabels[i]+' '+v+'</div>';}});
+    h+='</div>';
+    h+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px">';
+    chKeys.forEach((k,i)=>{const vi=chTotI[k],vr=chTotR[k];if(vi>0||vr>0)h+='<div style="display:flex;align-items:center;gap:8px"><div style="width:12px;height:12px;border-radius:3px;background:'+chColors[i]+';flex-shrink:0"></div><div><div style="font-size:13px;font-weight:600">'+chLabels[i]+'</div><div style="font-size:12px;color:var(--text2)">'+vi+' iscritti  |  '+fE(vr)+'</div></div></div>';});
+    h+='</div></div>';
+  } else h+='<div style="font-size:13px;color:var(--text3)">Nessun dato canale disponibile.</div>';
+  h+='</div>';
+
+  // Overlap candidati
+  var overlapData=calcOverlapDetail(nome);
+  if(overlapData.total>0){
+    h+='<div class="prod-section"><div style="display:flex;align-items:center;gap:12px"><div style="font-family:var(--mono);font-size:28px;font-weight:700;color:var(--blue)">'+overlapData.total+'</div><div><div style="font-size:14px;font-weight:600">Candidati in comune con '+overlapData.courses.map(c=>c.name+' ('+c.count+')').join('  |  ')+'</div></div></div></div>';
+  }
+
+  // Analytics avanzate
+  h+='<div class="prod-section"><div class="prod-section-title">Analytics avanzate</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">';
+  const allDealsP=filteredCorsi.flatMap(c=>c.brevoDeals);
+  const wonDeals=allDealsP.filter(d=>d.stage==='Closed Won');
+  if(wonDeals.length>0){const avgD=wonDeals.reduce((sum,d)=>{const cr=new Date(d.createdAt),cl=new Date(d.modifiedAt||d.closeDate);if(isNaN(cr)||isNaN(cl))return sum;return sum+Math.max(0,Math.floor((cl-cr)/864e5));},0)/wonDeals.length;h+='<div style="background:var(--bg);padding:14px;border-radius:var(--radius-sm)"><div style="font-size:12px;color:var(--text3);font-weight:600">TEMPO CONVERSIONE</div><div style="font-family:var(--mono);font-size:25px;font-weight:700;color:var(--blue)">'+Math.round(avgD)+'<span style="font-size:14px;color:var(--text3)"> gg</span></div><div style="font-size:12px;color:var(--text2)">Da deal a Closed Won ('+wonDeals.length+')</div></div>';}
+  const totOA=filteredCorsi.reduce((s,c)=>s+c.iscrittiOA,0),totRevA=filteredCorsi.reduce((s,c)=>s+c.revenueOA,0),avgRPS=totOA>0?Math.round(totRevA/totOA):0,avgList=filteredCorsi.length>0?Math.round(filteredCorsi.reduce((s,c)=>s+c.pricing,0)/filteredCorsi.length):0;
+  h+='<div style="background:var(--bg);padding:14px;border-radius:var(--radius-sm)"><div style="font-size:12px;color:var(--text3);font-weight:600">REVENUE / STUDENTE</div><div style="font-family:var(--mono);font-size:25px;font-weight:700">'+fE(avgRPS)+'</div><div style="font-size:12px;color:var(--text2)">Listino medio: '+fE(avgList)+(avgList>0?' — sconto '+(Math.round((1-avgRPS/avgList)*100))+'%':'')+'</div></div>';
+  if(allDealsP.length>0){const stg={};allDealsP.forEach(d=>{stg[d.stage]=(stg[d.stage]||0)+1;});const won2=stg['Closed Won']||0,lost=stg['Closed Lost']||0,noshow=stg['No Show']||0,dropPct=allDealsP.length>0?Math.round((lost+noshow)/allDealsP.length*100):0;h+='<div style="background:var(--bg);padding:14px;border-radius:var(--radius-sm)"><div style="font-size:12px;color:var(--text3);font-weight:600">DROPOUT PIPELINE</div><div style="font-family:var(--mono);font-size:25px;font-weight:700;color:'+(dropPct>40?'var(--red)':'var(--amber)')+'">'+dropPct+'%</div><div style="font-size:12px;color:var(--text2)">Won '+won2+'  |  Lost '+lost+'  |  No Show '+noshow+'</div></div>';}
+  h+='</div></div>';
+
+  // Monitor fonti per edizione - v8: padding migliorato
+  h+='<div class="prod-section"><div class="prod-section-title">Monitor fonti</div><div style="display:grid;grid-template-columns:repeat('+Math.min(corsi.length,4)+',1fr);gap:16px">';
+  for(let ci=0;ci<corsi.length;ci++){const c=corsi[ci],il=IF[c.intake]||c.intake;const ck=[{l:'File O&A',ok:c.iscrittiOA>0,v:c.iscrittiOA+' studenti'},{l:'Deal Brevo',ok:c.brevoDeals.length>0,v:c.brevoDeals.length+' deal'},{l:'Candidature GF',ok:c.gfCount>0,v:c.gfCount+' form'},{l:'Colloqui',ok:c.calAll>0,v:c.calAll+' prenotati'},{l:'Costi',ok:c.costiFissi>0,v:c.costiFissi>0?fE(c.costiTotali):'mancante'}];h+='<div style="padding:8px 16px'+(ci>0?';border-left:1px solid var(--border)':'')+'"><div style="font-size:14px;font-weight:700;margin-bottom:8px">'+il+'</div>'+ck.map(ch=>'<div class="monitor-row"><div class="monitor-dot '+(ch.ok?'dot-ok':'dot-miss')+'"></div><div class="monitor-label">'+ch.l+'</div><div class="monitor-val">'+ch.v+'</div></div>').join('')+'</div>';}
+  h+='</div></div>';
+  ct.innerHTML=h;
+}
+
+// ── TAB 3 — INSIGHTS ─────────────────────────────────────────────
+function renderInsights(corsi) {
+  if(!DL)return;
+  const allDeals=DL.Brevo_Deals||[],ct=document.getElementById('insights-content');
+  const wonDeals=allDeals.filter(d=>d.stage==='Closed Won');
+  const convByProd={};for(const d of wonDeals){const s=(d.sigla||'').toUpperCase().split('-');if(s.length<3)continue;const prod=nP(s[0]),cr=new Date(d.createdAt),cl=new Date(d.modifiedAt||d.closeDate);if(isNaN(cr)||isNaN(cl))continue;const days=Math.max(0,Math.floor((cl-cr)/864e5));if(!convByProd[prod])convByProd[prod]=[];convByProd[prod].push(days);}
+  const globalConvDays=wonDeals.length>0?wonDeals.reduce((s,d)=>{const c=new Date(d.createdAt),cl=new Date(d.modifiedAt||d.closeDate);if(isNaN(c)||isNaN(cl))return s;return s+Math.max(0,Math.floor((cl-c)/864e5));},0)/wonDeals.length:0;
+  const openStages=['Booked','Interviewed','Negotiation','Contract pending','Rescheduled'];
+  const openDeals=allDeals.filter(d=>openStages.includes(d.stage));
+  const now=new Date();let ag={u7:0,d7:0,d14:0,o30:0};const staleDeals=[];
+  for(const d of openDeals){const cr=new Date(d.createdAt);if(isNaN(cr))continue;const days=Math.floor((now-cr)/864e5);if(days<=7)ag.u7++;else if(days<=14)ag.d7++;else if(days<=30)ag.d14++;else ag.o30++;if(days>14)staleDeals.push({name:d.dealName||d.candidato||'',stage:d.stage,days:days,sigla:d.sigla});}
+  staleDeals.sort((a,b)=>b.days-a.days);
+  const lostDeals=allDeals.filter(d=>d.stage==='Closed Lost'),lostReasons={};lostDeals.forEach(d=>{const r=d.lostReason||'Non specificato';lostReasons[r]=(lostReasons[r]||0)+1;});
+  const lrSorted=Object.entries(lostReasons).sort((a,b)=>b[1]-a[1]),lrMax=lrSorted.length>0?lrSorted[0][1]:1;
+  const noShowDeals=allDeals.filter(d=>d.stage==='No Show'),nsByCourse={};noShowDeals.forEach(d=>{const s=(d.sigla||'').toUpperCase().split('-');if(s.length>=3){const k=s[0]+'-'+s[2];nsByCourse[k]=(nsByCourse[k]||0)+1;}});
+  const nsSorted=Object.entries(nsByCourse).sort((a,b)=>b[1]-a[1]),nsMax=nsSorted.length>0?nsSorted[0][1]:1;
+  const totRev=corsi.reduce((s,c)=>s+c.revenueOA,0),totCost=corsi.filter(c=>c.iscrittiOA>0).reduce((s,c)=>s+c.costiTotali,0);
+  var realMktgInsights=getRealSpend();
+  const marginPct=totRev>0?Math.round((totRev-totCost-realMktgInsights)/totRev*100):0;
+  const totCol=corsi.reduce((s,c)=>s+c.calAll,0),costPerCol=totCol>0?Math.round(realMktgInsights/totCol):0;
+
+  let h='<div class="kpi-row" style="margin-bottom:24px">'+
+    '<div class="kpi"><div class="kpi-label">Tempo medio conv.</div><div class="kpi-value" style="color:var(--blue)">'+Math.round(globalConvDays)+'<span style="font-size:14px;color:var(--text3)"> gg</span></div><div class="kpi-sub">'+wonDeals.length+' deal Closed Won</div></div>'+
+    '<div class="kpi"><div class="kpi-label">Deal fermi &gt;30gg</div><div class="kpi-value" style="color:'+(ag.o30>5?'var(--red)':'var(--amber)')+'">'+ag.o30+'</div><div class="kpi-sub">Si raffreddano senza follow-up</div></div>'+
+    '<div class="kpi"><div class="kpi-label">Closed Lost</div><div class="kpi-value" style="color:var(--red)">'+lostDeals.length+'</div><div class="kpi-sub">Deal persi totali</div></div>'+
+    '<div class="kpi"><div class="kpi-label">No Show</div><div class="kpi-value" style="color:var(--amber)">'+noShowDeals.length+'</div><div class="kpi-sub">Colloqui mancati</div></div>'+
+    '<div class="kpi"><div class="kpi-label">Costo per Colloquio</div><div class="kpi-value" style="color:var(--purple)">'+fE(costPerCol)+'</div><div class="kpi-sub">Budget speso ÷ colloqui</div></div>'+
+    '<div class="kpi"><div class="kpi-label">Margine medio</div><div class="kpi-value" style="color:'+(marginPct>=0?'var(--green)':'var(--red)')+'">'+marginPct+'%</div><div class="kpi-sub">'+fE(totRev)+' rev — '+fE(totCost)+' costi</div></div>'+
+    '</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">';
+
+  const convEntries=Object.entries(convByProd).map(([p,days])=>[p,Math.round(days.reduce((a,b)=>a+b,0)/days.length),days.length]).sort((a,b)=>a[1]-b[1]);
+  const convMax=convEntries.length>0?Math.max(...convEntries.map(e=>e[1]),1):1;
+  h+='<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px"><div class="prod-section-title">Tempo conversione per prodotto</div>';
+  if(convEntries.length>0)convEntries.forEach(([p,avg])=>{const col=avg<=14?'var(--green)':avg<=30?'var(--amber)':'var(--red)';h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px"><span style="font-family:var(--mono);font-size:12px;font-weight:600;min-width:50px">'+p+'</span><div style="flex:1;height:8px;background:var(--border-l);border-radius:4px"><div style="height:100%;width:'+Math.round(avg/convMax*100)+'%;background:'+col+';border-radius:4px"></div></div><span style="font-family:var(--mono);font-size:12px;font-weight:700;min-width:40px;text-align:right">'+avg+'gg</span></div>';});
+  else h+='<div style="font-size:13px;color:var(--text3)">Nessun deal Closed Won</div>';
+  h+='</div>';
+
+  h+='<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px"><div class="prod-section-title">Aging deal aperti</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px"><div style="text-align:center;padding:12px;background:var(--bg);border-radius:var(--radius-sm)"><div style="font-family:var(--mono);font-size:24px;font-weight:700;color:var(--green)">'+ag.u7+'</div><div style="font-size:11px;color:var(--text3)">0-7 gg</div></div><div style="text-align:center;padding:12px;background:var(--bg);border-radius:var(--radius-sm)"><div style="font-family:var(--mono);font-size:24px;font-weight:700;color:var(--amber)">'+ag.d7+'</div><div style="font-size:11px;color:var(--text3)">8-14 gg</div></div><div style="text-align:center;padding:12px;background:var(--bg);border-radius:var(--radius-sm)"><div style="font-family:var(--mono);font-size:24px;font-weight:700;color:var(--amber)">'+ag.d14+'</div><div style="font-size:11px;color:var(--text3)">15-30 gg</div></div><div style="text-align:center;padding:12px;background:var(--bg);border-radius:var(--radius-sm)"><div style="font-family:var(--mono);font-size:24px;font-weight:700;color:var(--red)">'+ag.o30+'</div><div style="font-size:11px;color:var(--text3)">&gt;30 gg</div></div></div>';
+  if(staleDeals.length>0){h+='<div style="font-size:12px;font-weight:700;color:var(--text3);margin-bottom:6px">DEAL FERMI &gt;14 GIORNI</div>';staleDeals.slice(0,10).forEach(d=>{h+='<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px"><span style="font-family:var(--mono);font-weight:700;min-width:36px;text-align:right;color:'+(d.days>30?'var(--red)':'var(--amber)')+'">'+d.days+'gg</span><span class="stage-badge" style="background:'+(SC[d.stage]||'#9ca3af')+';font-size:10px">'+d.stage+'</span><span style="flex:1;color:var(--text2)">'+d.name+'</span></div>';});}
+  h+='</div>';
+
+  h+='<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px"><div class="prod-section-title">Motivi di perdita deal</div>';
+  if(lrSorted.length>0)lrSorted.forEach(([r,c])=>{h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px"><span style="font-size:12px;min-width:120px;color:var(--text2)">'+r+'</span><div style="flex:1;height:8px;background:var(--border-l);border-radius:4px"><div style="height:100%;width:'+Math.round(c/lrMax*100)+'%;background:var(--red);border-radius:4px"></div></div><span style="font-family:var(--mono);font-size:12px;font-weight:700;min-width:24px;text-align:right">'+c+'</span></div>';});
+  else h+='<div style="font-size:13px;color:var(--text3)">Nessun dato lost reason</div>';
+  h+='</div>';
+
+  h+='<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px"><div class="prod-section-title">No Show per corso</div><div style="font-size:13px;color:var(--text2);margin-bottom:10px">'+noShowDeals.length+' no show totali</div>';
+  if(nsSorted.length>0)nsSorted.forEach(([k,c])=>{h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px"><span style="font-family:var(--mono);font-size:12px;font-weight:600;min-width:80px">'+k+'</span><div style="flex:1;height:8px;background:var(--border-l);border-radius:4px"><div style="height:100%;width:'+Math.round(c/nsMax*100)+'%;background:var(--amber);border-radius:4px"></div></div><span style="font-family:var(--mono);font-size:12px;font-weight:700;min-width:24px;text-align:right">'+c+'</span></div>';});
+  else h+='<div style="font-size:13px;color:var(--text3)">Nessun No Show</div>';
+  h+='</div></div>';
+
+  // v8: Marginalità per corso con riga campagne generiche prima del totale
+  const margCorsi=corsi.filter(c=>c.costiTotali>0||c.revenueOA>0||c.mktgPaid>0);
+  if(margCorsi.length>0){
+    const byNome={};for(const c of margCorsi){if(!byNome[c.nome])byNome[c.nome]=[];byNome[c.nome].push(c);}
+    const colDel=pct=>pct>50?'cell-bad':pct<30?'cell-good':'',colM=n=>n>=0?'cell-good':'cell-bad';
+    h+='<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-top:16px"><div class="prod-section-title">Marginalità per corso</div><table class="mtable"><thead><tr><th>Corso</th><th>Ed.</th><th class="num">Revenue</th><th class="num">Delivery</th><th class="num">% Del</th><th class="num">Mktg</th><th class="num">% Mktg</th><th class="num">Netto</th><th class="num">% Netto</th></tr></thead><tbody>';
+    let gR=0,gD=0,gM=0;
+    for(const[nomeCor,eds]of Object.entries(byNome).sort()){let cR=0,cD=0,cM=0;
+      for(const c of eds.sort((a,b)=>(a.intake||'').localeCompare(b.intake||''))){const del=c.costiTotali,mktg=c.mktgPaid||0,dP=c.revenueOA>0?Math.round(del/c.revenueOA*100):0,mP=c.revenueOA>0?Math.round(mktg/c.revenueOA*100):0,netto=c.revenueOA-del-mktg,nP2=c.revenueOA>0?Math.round(netto/c.revenueOA*100):0;cR+=c.revenueOA;cD+=del;cM+=mktg;
+        h+='<tr><td style="font-size:12px">'+nomeCor.substring(0,25)+'</td><td style="font-family:var(--mono);font-size:11px">'+(IF[c.intake]||c.intake)+'</td><td class="num" style="color:var(--green)">'+fE(c.revenueOA)+'</td><td class="num">'+fE(del)+'</td><td class="num '+colDel(dP)+'">'+dP+'%</td><td class="num">'+fE(mktg)+'</td><td class="num">'+mP+'%</td><td class="num '+colM(netto)+'">'+fE(netto)+'</td><td class="num '+colM(netto)+'">'+nP2+'%</td></tr>';}
+      gR+=cR;gD+=cD;gM+=cM;
+      if(eds.length>1){const cn=cR-cD,cnP=cR>0?Math.round(cn/cR*100):0,cDP=cR>0?Math.round(cD/cR*100):0;h+='<tr class="row-sub"><td colspan="2" style="font-size:11px">Sub. '+nomeCor.substring(0,15)+'</td><td class="num" style="color:var(--green)">'+fE(cR)+'</td><td class="num">'+fE(cD)+'</td><td class="num '+colDel(cDP)+'">'+cDP+'%</td><td class="num">'+fE(cM)+'</td><td class="num">—</td><td class="num '+colM(cn-cM)+'">'+fE(cn-cM)+'</td><td class="num '+colM(cn-cM)+'">'+(cR>0?Math.round((cn-cM)/cR*100):'0')+'%</td></tr>';}}
+    // v8: riga campagne generiche prima del totale
+    var unmatchedMktg=0;
+    (DL.Meta_Campaigns||[]).forEach(function(mc){var s=(mc.sigle||'').split(',').filter(Boolean);var matched=false;for(var sig of s){if(corsi.some(c=>c.prod===nP(sig))){matched=true;break;}}if(!matched&&(parseFloat(mc.spend)||0)>0)unmatchedMktg+=parseFloat(mc.spend)||0;});
+    (DL.GAds_Campaigns||[]).forEach(function(gc){var s=(gc.sigle||'').split(',').filter(Boolean);var matched=false;for(var sig of s){if(corsi.some(c=>c.prod===nP(sig))){matched=true;break;}}if(!matched&&(parseFloat(gc.cost)||0)>0)unmatchedMktg+=parseFloat(gc.cost)||0;});
+    if(unmatchedMktg>0){gM+=unmatchedMktg;h+='<tr style="background:var(--amber-l)"><td colspan="2" style="font-size:12px;font-style:italic">⚠ Campagne generiche</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num" style="font-weight:700">'+fE(unmatchedMktg)+'</td><td class="num">—</td><td class="num">—</td><td class="num">—</td></tr>';}
+    const gN=gR-gD-gM,gDP=gR>0?Math.round(gD/gR*100):0,gNP=gR>0?Math.round(gN/gR*100):0;
+    h+='<tr class="row-tot"><td colspan="2">TOTALE</td><td class="num" style="color:var(--green)">'+fE(gR)+'</td><td class="num">'+fE(gD)+'</td><td class="num '+colDel(gDP)+'">'+gDP+'%</td><td class="num">'+fE(gM)+'</td><td class="num">—</td><td class="num '+colM(gN)+'">'+fE(gN)+'</td><td class="num '+colM(gN)+'">'+gNP+'%</td></tr>';
+    h+='</tbody></table></div>';
+  }
+  ct.innerHTML=h;
+}
+
+// ── TAB 4 — QUALITÀ ──────────────────────────────────────────────
+let qaExpanded=null;
+function renderQualita(){
+  if(!DL)return;const fb=DL.Feedback||[],ct=document.getElementById('qualita-content');
+  const corsi=buildCorsi(),corsiNomi=new Set(corsi.map(c=>c.nome.toLowerCase()));
+  const ws=fb.filter(f=>{const m=parseFloat(f.media)||0;if(m<=0)return false;const cn=(f.courseName||f.prodotto||f.nome||'').toLowerCase();for(const n of corsiNomi){if(cn.includes(n.substring(0,10))||n.includes(cn.substring(0,10)))return true;}return false;});
+  if(!ws.length){ct.innerHTML='<div class="empty-state"><h3>Nessun feedback disponibile</h3></div>';return;}
+  const sc=v=>v>=4.5?'var(--green)':v>=3.5?'var(--amber)':'var(--red)',fv=v=>v>0?v.toFixed(1):'—',avg=(arr,key)=>{const v=arr.filter(f=>(parseFloat(f[key])||0)>0);return v.length?v.reduce((s,f)=>s+(parseFloat(f[key])||0),0)/v.length:0;};
+  const byCourse={};for(const f of ws){const cn=(f.courseName||f.prodotto||f.nome||'');let matched='';for(const n of corsiNomi){if(cn.toLowerCase().includes(n.substring(0,10))||n.includes(cn.toLowerCase().substring(0,10))){matched=n;break;}}if(!matched)matched=cn;if(!byCourse[matched])byCourse[matched]=[];byCourse[matched].push(f);}
+  const aM=avg(ws,'media'),aO=avg(ws,'organizzazione'),aC=avg(ws,'contenuti'),aD=avg(ws,'docenti'),aL=avg(ws,'logistica');
+  let h='<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px">';
+  for(const[lbl,val]of[['Media',aM],['Organizzazione',aO],['Contenuti',aC],['Docenti',aD],['Logistica',aL]])h+='<div style="text-align:center;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px"><div style="font-family:var(--mono);font-size:36px;font-weight:700;color:'+sc(val)+'">'+fv(val)+'</div><div style="font-size:12px;color:var(--text3);font-weight:600;text-transform:uppercase;margin-top:4px">'+lbl+'</div></div>';
+  h+='</div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">';
+  for(const[courseName,modules]of Object.entries(byCourse).sort((a,b)=>avg(b[1],'media')-avg(a[1],'media'))){
+    const cAvg=avg(modules,'media'),cC=avg(modules,'contenuti'),cD2=avg(modules,'docenti'),cL=avg(modules,'logistica'),col=sc(cAvg),totR=modules.reduce((s,f)=>s+(parseFloat(f.numRisposte)||0),0),isExp=qaExpanded===courseName;
+    const dispN=courseName.charAt(0).toUpperCase()+courseName.slice(1);
+    const bar=(lbl,val)=>val>0?'<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px"><span style="font-size:12px;min-width:90px;color:var(--text2)">'+lbl+'</span><div style="flex:1;height:5px;background:var(--border-l);border-radius:3px"><div style="height:100%;width:'+(val/5*100)+'%;background:'+sc(val)+';border-radius:3px"></div></div><span style="font-family:var(--mono);font-size:12px;font-weight:600;color:'+sc(val)+'">'+val.toFixed(1)+'</span></div>':'';
+    h+='<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);border-top:3px solid '+col+';cursor:pointer" onclick="qaExpanded=qaExpanded===\''+courseName.replace(/'/g,"\\'")+'\'?null:\''+courseName.replace(/'/g,"\\'")+'\';renderQualita()">';
+    h+='<div style="padding:16px"><div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:6px"><div style="font-size:14px;font-weight:700">'+dispN+'</div><div style="font-family:var(--mono);font-size:24px;font-weight:700;color:'+col+'">'+cAvg.toFixed(1)+'</div></div><div style="font-size:12px;color:var(--text3);margin-bottom:8px">'+modules.length+' moduli  |  '+totR+' risposte</div>'+bar('Contenuti',cC)+bar('Docenti',cD2)+bar('Logistica',cL)+'<div style="text-align:center;font-size:11px;color:var(--text3);margin-top:8px">'+(isExp?'▲ Chiudi':'▼ Espandi moduli')+'</div></div>';
+    if(isExp){h+='<div style="border-top:1px solid var(--border);padding:12px 16px;background:var(--bg)">';for(const f of modules.sort((a,b)=>(parseFloat(b.media)||0)-(parseFloat(a.media)||0))){const m=parseFloat(f.media)||0,mcol=sc(m);const cleanC=t=>(!t||t.includes('do not have enough')||t.length<5)?'':t,posC=cleanC(f.aspettiPositivi||''),negC=cleanC(f.areeMiglioramento||'');h+='<div style="background:var(--card);border:1px solid var(--border-l);border-radius:var(--radius-sm);padding:12px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><span style="font-size:13px;font-weight:600">'+(f.prodotto||f.nome)+'</span><span style="font-family:var(--mono);font-size:18px;font-weight:700;color:'+mcol+'">'+m.toFixed(1)+'</span></div><div style="font-size:11px;color:var(--text3);margin-bottom:6px">'+fD(f.dataEvento||'')+'  |  '+(f.numRisposte||0)+' risposte</div>'+bar('Contenuti',parseFloat(f.contenuti)||0)+bar('Docenti',parseFloat(f.docenti)||0)+bar('Logistica',parseFloat(f.logistica)||0)+(posC?'<div style="margin-top:6px;padding:6px 8px;background:var(--bg);border-radius:var(--radius-sm);font-size:12px"><b style="color:var(--green);font-size:10px">✓ FORZA</b><br>'+posC.substring(0,250)+'</div>':'')+(negC?'<div style="margin-top:4px;padding:6px 8px;background:var(--bg);border-radius:var(--radius-sm);font-size:12px"><b style="color:var(--amber);font-size:10px">△ MIGL.</b><br>'+negC.substring(0,250)+'</div>':'')+'</div>';}h+='</div>';}
+    h+='</div>';
+  }
+  h+='</div>';ct.innerHTML=h;
+}
+
+// ── TAB 5 — MONITOR FONTI ────────────────────────────────────────
+function renderMonitor(){
+  if(!DL)return;const meta=DL._metadata||[];
+  document.getElementById('monitor-global').innerHTML='<h3 style="font-size:16px;font-weight:700;margin-bottom:14px">Stato fonti globale</h3><div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:24px">'+meta.map(m=>'<div class="monitor-row" style="background:var(--card);padding:10px 14px;border-radius:var(--radius-sm);border:1px solid var(--border)"><div class="monitor-dot '+(m.status==='ok'?'dot-ok':m.status==='vuoto'?'dot-warn':'dot-miss')+'"></div><div class="monitor-label" style="font-weight:600;color:var(--text1)">'+m.tab+'</div><div class="monitor-val">'+m.records+' righe</div></div>').join('')+'</div>';
+  const corsi=buildCorsi(),byN={};for(const c of corsi){if(!byN[c.nome])byN[c.nome]=[];byN[c.nome].push(c);}
+  document.getElementById('monitor-per-prod').style.gridTemplateColumns='repeat(3,1fr)';
+  document.getElementById('monitor-per-prod').innerHTML=Object.entries(byN).sort((a,b)=>a[0].localeCompare(b[0])).map(([nome,eds])=>{
+    const allSt=eds.map(c=>cSt(c)),pSt=allSt.includes('active')?'In corso':allSt.includes('selling')?'In vendita':'Concluso',pStC=pSt==='In vendita'?'ed-status-selling':pSt==='In corso'?'ed-status-active':'ed-status-done';
+    return'<div class="monitor-card"><div class="monitor-card-title">'+nome+' <span class="ed-status '+pStC+'" style="margin-left:6px">'+pSt+'</span></div>'+eds.map(c=>{const il=IF[c.intake]||c.intake,hO=c.iscrittiOA>0,hB=c.brevoDeals.length>0,hG=c.gfCount>0,hC=c.calAll>0,hK=c.costiFissi>0;return'<div style="margin-bottom:8px"><div style="font-size:13px;font-weight:700;margin-bottom:4px">'+il+'</div><div style="display:flex;gap:4px;flex-wrap:wrap"><span class="badge '+(hO?'badge-ok':'badge-bad')+'">O&A '+(hO?c.iscrittiOA:'✗')+'</span><span class="badge '+(hB?'badge-ok':'badge-warn')+'">Brevo '+(hB?c.brevoDeals.length:'✗')+'</span><span class="badge '+(hG?'badge-ok':'badge-warn')+'">GF '+(hG?c.gfCount:'✗')+'</span><span class="badge '+(hC?'badge-ok':'badge-warn')+'">Cal '+(hC?c.calAll:'✗')+'</span><span class="badge '+(hK?'badge-ok':'badge-warn')+'">Costi '+(hK?'✓':'✗')+'</span></div></div>';}).join('')+'</div>';}).join('');
+}
+
+// ── TAB MARKETING ────────────────────────────────────────────────
+function renderMarketing() {
+  if(!DL) return;
+  var ct = document.getElementById('marketing-content');
+  var mc = DL.Meta_Campaigns||[], gc = DL.GAds_Campaigns||[], ga4p = DL.GA4_Pages||[];
+  var mcd = DL.Meta_Campaign_Daily||[];
+  var brevoContacts = DL.Brevo_Contacts||[];
+  var corsi = buildCorsi();
+
+  var metaSpend=0,metaLeads=0,metaClicks=0,metaImpr=0;
+  mc.forEach(function(c){metaSpend+=parseFloat(c.spend)||0;metaLeads+=parseInt(c.leads)||0;metaClicks+=parseInt(c.clicks)||0;metaImpr+=parseInt(c.impressions)||0;});
+  var gadsSpend=0,gadsClicks=0,gadsConv=0;
+  gc.forEach(function(c){gadsSpend+=parseFloat(c.cost)||0;gadsClicks+=parseInt(c.clicks)||0;gadsConv+=parseFloat(c.conversions)||0;});
+  // v8: spend reale da API
+  var totalSpend=metaSpend+gadsSpend;
+  var ga4Sessions=0;ga4p.forEach(function(p){ga4Sessions+=parseInt(p.sessions)||0;});
+  var metaCPL=metaLeads>0?Math.round(metaSpend/metaLeads):0;
+  var metaActive=mc.filter(function(c){return c.status==='ACTIVE';}).length;
+  var gadsActive=gc.filter(function(c){return c.status==='ENABLED';}).length;
+
+  var h = '<div class="kpi-row" style="margin-bottom:20px">'+
+    '<div class="kpi"><div class="kpi-label">Spend totale</div><div class="kpi-value">'+fE(totalSpend)+'</div><div class="kpi-sub">Meta+GAds campaigns</div></div>'+
+    '<div class="kpi"><div class="kpi-label">Lead Meta</div><div class="kpi-value" style="color:var(--blue)">'+metaLeads+'</div><div class="kpi-sub">CPL medio '+fE(metaCPL)+'</div></div>'+
+    '<div class="kpi"><div class="kpi-label">Campagne attive</div><div class="kpi-value" style="color:var(--green)">'+(metaActive+gadsActive)+'</div><div class="kpi-sub">Meta '+metaActive+'  |  Google '+gadsActive+'</div></div>'+
+    '<div class="kpi"><div class="kpi-label">Click totali</div><div class="kpi-value">'+(metaClicks+gadsClicks).toLocaleString('it-IT')+'</div><div class="kpi-sub">Meta '+metaClicks.toLocaleString('it-IT')+'  |  Google '+gadsClicks.toLocaleString('it-IT')+'</div></div>'+
+    '<div class="kpi"><div class="kpi-label">Sessioni sito</div><div class="kpi-value" style="color:var(--purple)">'+ga4Sessions.toLocaleString('it-IT')+'</div><div class="kpi-sub">'+ga4p.length+' pagine tracciate</div></div></div>';
+
+  // 3 card: Meta, Google, GA4
+  h += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">';
+  var metaCPC=metaClicks>0?Math.round(metaSpend/metaClicks*100)/100:0;
+  h += '<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px"><div class="prod-section-title">Meta Ads</div><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px"><div><div style="font-size:12px;color:var(--text3)">Speso</div><div style="font-family:var(--mono);font-size:20px;font-weight:700">'+fE(metaSpend)+'</div></div><div><div style="font-size:12px;color:var(--text3)">Click</div><div style="font-family:var(--mono);font-size:20px;font-weight:700">'+metaClicks.toLocaleString('it-IT')+'</div></div><div><div style="font-size:12px;color:var(--text3)">Impressions</div><div style="font-family:var(--mono);font-size:14px;font-weight:600">'+metaImpr.toLocaleString('it-IT')+'</div></div><div><div style="font-size:12px;color:var(--text3)">CPC medio</div><div style="font-family:var(--mono);font-size:14px;font-weight:600">'+fE(metaCPC)+'</div></div></div></div>';
+  var gadsCPC=gadsClicks>0?Math.round(gadsSpend/gadsClicks*100)/100:0;
+  h += '<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px"><div class="prod-section-title">Google Ads</div><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px"><div><div style="font-size:12px;color:var(--text3)">Speso</div><div style="font-family:var(--mono);font-size:20px;font-weight:700">'+fE(gadsSpend)+'</div></div><div><div style="font-size:12px;color:var(--text3)">Click</div><div style="font-family:var(--mono);font-size:20px;font-weight:700">'+gadsClicks.toLocaleString('it-IT')+'</div></div><div><div style="font-size:12px;color:var(--text3)">Conversioni</div><div style="font-family:var(--mono);font-size:14px;font-weight:600">'+Math.round(gadsConv)+'</div></div><div><div style="font-size:12px;color:var(--text3)">CPC medio</div><div style="font-family:var(--mono);font-size:14px;font-weight:600">'+fE(gadsCPC)+'</div></div></div></div>';
+  h += '<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px"><div class="prod-section-title">GA4 Sito Web</div><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px"><div><div style="font-size:12px;color:var(--text3)">Sessioni</div><div style="font-family:var(--mono);font-size:20px;font-weight:700">'+ga4Sessions.toLocaleString('it-IT')+'</div></div><div><div style="font-size:12px;color:var(--text3)">Pagine corso</div><div style="font-family:var(--mono);font-size:20px;font-weight:700">'+ga4p.filter(function(p){return p.sigla;}).length+'</div></div><div><div style="font-size:12px;color:var(--text3)">Utenti totali</div><div style="font-family:var(--mono);font-size:14px;font-weight:600">'+ga4p.reduce(function(s,p){return s+(parseInt(p.users)||0);},0).toLocaleString('it-IT')+'</div></div><div><div style="font-size:12px;color:var(--text3)">Pageviews</div><div style="font-family:var(--mono);font-size:14px;font-weight:600">'+ga4p.reduce(function(s,p){return s+(parseInt(p.pageViews)||0);},0).toLocaleString('it-IT')+'</div></div></div></div>';
+  h += '</div>';
+
+  // Ranking + Top pages side by side
+  var ranked = mc.filter(function(c){return (parseInt(c.leads)||0)>0;}).sort(function(a,b){return (parseFloat(a.cpl)||999)-(parseFloat(b.cpl)||999);});
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">';
+  h += '<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px"><div class="prod-section-title">Ranking campagne Meta per CPL</div>';
+  if(ranked.length){h+='<table class="mtable"><thead><tr><th>Campagna</th><th>Corso</th><th class="num">Stato</th><th class="num">Spend</th><th class="num">Lead</th><th class="num">CPL</th></tr></thead><tbody>';ranked.forEach(function(c){var col=parseFloat(c.cpl)<20?'var(--green)':parseFloat(c.cpl)<40?'var(--amber)':'var(--red)';var stBadge=c.status==='ACTIVE'?'<span style="background:var(--green-l);color:var(--green);padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700">ATTIVA</span>':'<span style="background:var(--bg);color:var(--text3);padding:2px 6px;border-radius:4px;font-size:10px">PAUSA</span>';h+='<tr><td style="font-size:12px">'+c.campaignName.substring(0,35)+'</td><td style="font-family:var(--mono);font-size:11px">'+(c.sigle||'—')+'</td><td>'+stBadge+'</td><td class="num">'+fE(parseFloat(c.spend))+'</td><td class="num">'+c.leads+'</td><td class="num" style="color:'+col+';font-weight:700">'+fE(parseFloat(c.cpl))+'</td></tr>';});h+='</tbody></table>';}else h+='<div style="font-size:13px;color:var(--text3)">Nessuna campagna con lead</div>';
+  h += '</div>';
+
+  var coursePages = ga4p.filter(function(p){return p.sigla;}).sort(function(a,b){return (parseInt(b.sessions)||0)-(parseInt(a.sessions)||0);});
+  h += '<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px"><div class="prod-section-title">Top pagine corso (GA4)</div>';
+  if(coursePages.length){h+='<table class="mtable"><thead><tr><th>Pagina</th><th>Corso</th><th class="num">Sessioni</th><th class="num">Utenti</th><th class="num">Engagement</th><th class="num">Bounce</th></tr></thead><tbody>';coursePages.slice(0,15).forEach(function(p){var eng=Math.round((parseFloat(p.engagementRate)||0)*100);var bounce=Math.round((parseFloat(p.bounceRate)||0)*100);h+='<tr><td style="font-size:11px">'+p.pagePath.substring(0,40)+'</td><td style="font-family:var(--mono);font-size:11px;font-weight:600">'+p.sigla+'</td><td class="num">'+parseInt(p.sessions)+'</td><td class="num">'+parseInt(p.users)+'</td><td class="num" style="color:var(--green)">'+eng+'%</td><td class="num" style="color:'+(bounce>5?'var(--red)':'var(--green)')+'">'+bounce+'%</td></tr>';});h+='</tbody></table>';}else h+='<div style="font-size:13px;color:var(--text3)">Nessuna pagina corso</div>';
+  h += '</div></div>';
+
+  // Meta vs Google
+  h += '<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-top:16px"><div class="prod-section-title">Meta vs Google — dove conviene spendere?</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:16px"><div style="text-align:center;padding:16px;background:var(--blue-l);border-radius:var(--radius)"><div style="font-size:14px;font-weight:700;color:var(--blue)">Meta Ads</div><div style="font-family:var(--mono);font-size:28px;font-weight:700;margin:8px 0">'+fE(metaSpend)+'</div><div style="font-size:13px;color:var(--text2)">'+metaLeads+' lead  |  CPL '+fE(metaCPL)+'</div><div style="font-size:13px;color:var(--text2)">'+metaClicks.toLocaleString('it-IT')+' click  |  '+metaActive+' attive</div></div>';
+  var gadsCPL=gadsConv>0?Math.round(gadsSpend/gadsConv):0;
+  h += '<div style="text-align:center;padding:16px;background:var(--bg);border-radius:var(--radius)"><div style="font-size:14px;font-weight:700;color:var(--text1)">Google Ads</div><div style="font-family:var(--mono);font-size:28px;font-weight:700;margin:8px 0">'+fE(gadsSpend)+'</div><div style="font-size:13px;color:var(--text2)">'+Math.round(gadsConv)+' conversioni  |  CPC '+fE(gadsCPL)+'</div><div style="font-size:13px;color:var(--text2)">'+gadsClicks.toLocaleString('it-IT')+' click  |  '+gadsActive+' attive</div></div></div></div>';
+
+  // Daily trend - v8: proper chart with Italian dates
+  if(mcd.length>0){
+    h += '<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-top:16px"><div class="prod-section-title">Trend giornaliero campagne Meta (ultimi 30gg)</div>';
+    h += buildDailyChart(mcd, null, null);
+    h += '</div>';
+  }
+
+  // Attribution
+  if(brevoContacts.length>0){
+    h += '<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-top:16px"><div class="prod-section-title">Attribution — Provenienza contatti Brevo</div>';
+    var provCount={};brevoContacts.forEach(function(c){var prov=(c.provenienza||'').split(',').map(function(s){return s.trim();}).filter(Boolean);prov.forEach(function(p){provCount[p]=(provCount[p]||0)+1;});});
+    var provSorted=Object.entries(provCount).sort(function(a,b){return b[1]-a[1];}),provMax=provSorted.length>0?provSorted[0][1]:1;
+    provSorted.forEach(function(e){var w=Math.round(e[1]/provMax*100);h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-size:13px;min-width:150px;color:var(--text2)">'+e[0]+'</span><div style="flex:1;height:8px;background:var(--border-l);border-radius:4px"><div style="height:100%;width:'+w+'%;background:var(--hfarm);border-radius:4px"></div></div><span style="font-family:var(--mono);font-size:12px;font-weight:700;min-width:40px;text-align:right">'+e[1]+'</span></div>';});
+    h += '</div>';
+  }
+
+  // Brochure - v8: nome completo + sigla
+  var gf=DL.Gravity_Forms||[],brochureByProd={};
+  gf.forEach(function(g){if(g.formTipo!=='brochure')return;var cc=(g.codicecorso||'').toUpperCase().split('-');var prod=cc[0]?nP(cc[0]):'';if(!prod)return;if(!brochureByProd[prod])brochureByProd[prod]={downloads:0,emails:new Set()};brochureByProd[prod].downloads++;if(g.email)brochureByProd[prod].emails.add(g.email.toLowerCase());});
+  if(Object.keys(brochureByProd).length>0){
+    h+='<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-top:16px"><div class="prod-section-title">Download brochure per prodotto</div>';
+    h+='<table class="mtable"><thead><tr><th>Corso</th><th>Sigla</th><th class="num">Download</th><th class="num">Email uniche</th><th class="num">Diventati deal</th><th class="num">% Diventati deal</th><th class="num">Won</th><th class="num">% Won su Download</th></tr></thead><tbody>';
+    var deals=DL.Brevo_Deals||[],siglaToName={};corsi.forEach(function(c){if(!siglaToName[c.prod])siglaToName[c.prod]=c.nome;});
+    for(var prod in brochureByProd){var b=brochureByProd[prod],converted=0,won=0;deals.forEach(function(d){if(!d.contactEmail)return;var dp=(d.sigla||'').split('-')[0]||'';if(nP(dp)===prod&&b.emails.has(d.contactEmail.toLowerCase())){converted++;if(d.stage==='Closed Won')won++;}});
+      var dealPct=b.emails.size>0?Math.round(converted/b.emails.size*100):0;
+      var wonPct=b.downloads>0?Math.round(won/b.downloads*100):0;
+      var fullName=siglaToName[prod]||prod;
+      h+='<tr><td style="font-size:12px">'+fullName+'</td><td style="font-family:var(--mono);font-weight:600;font-size:11px">'+prod+'</td><td class="num">'+b.downloads+'</td><td class="num">'+b.emails.size+'</td><td class="num">'+converted+'</td><td class="num" style="color:'+(dealPct>10?'var(--green)':'var(--amber)')+'">'+dealPct+'%</td><td class="num" style="color:var(--green);font-weight:700">'+won+'</td><td class="num" style="color:'+(wonPct>5?'var(--green)':'var(--amber)')+'">'+wonPct+'%</td></tr>';
+    }
+    h+='</tbody></table></div>';
+  }
+  ct.innerHTML = h;
+}
+</script>
+</body>
+</html>
