@@ -73,12 +73,13 @@
 <body>
 <div class="header"><div><div class="header-title">H-FARM <span>Business School</span></div><div class="header-sub">Executive Education Dashboard v8</div></div><div class="header-right"><span class="last-update" id="last-update"></span><button class="btn btn-green" onclick="refreshData()">Aggiorna</button></div></div>
 <div class="setup" id="setup"><span>Datalake URL:</span><input type="text" id="url-input" placeholder="Incolla URL del Web App…"><button onclick="saveUrl()">Salva e carica</button></div>
-<div class="tabs"><div class="tab active" onclick="switchTab('panoramica',this)">Panoramica</div><div class="tab" onclick="switchTab('prodotto',this)">Per prodotto</div><div class="tab" onclick="switchTab('marketing',this)">Marketing</div><div class="tab" onclick="switchTab('insights',this)">Insights</div><div class="tab" onclick="switchTab('qualita',this)">Qualità</div><div class="tab" onclick="switchTab('pl',this)">P&L</div><div class="tab" onclick="switchTab('monitor',this)">Monitor fonti</div></div>
+<div class="tabs"><div class="tab active" onclick="switchTab('panoramica',this)">Panoramica</div><div class="tab" onclick="switchTab('prodotto',this)">Per prodotto</div><div class="tab" onclick="switchTab('marketing',this)">Marketing</div><div class="tab" onclick="switchTab('insights',this)">Insights</div><div class="tab" onclick="switchTab('qualita',this)">Qualità</div><div class="tab" onclick="switchTab('pl',this)">P&L Prodotti</div><div class="tab" onclick="switchTab('plop',this)">P&L OP</div><div class="tab" onclick="switchTab('monitor',this)">Monitor fonti</div></div>
 <div class="tab-panel active" id="tab-panoramica"><div class="kpi-row" id="kpi-row"></div><div class="filters" id="filters"></div><div class="corso-grid" id="corso-grid"><div class="empty-state"><h3>Configura il datalake</h3><p>Incolla URL in alto.</p></div></div></div>
 <div class="tab-panel" id="tab-prodotto"><div class="prod-select-wrap"><label style="font-size:14px;font-weight:600;color:var(--text2)">Prodotto</label><select class="prod-select" id="prod-select" onchange="renderProdotto()"><option value="">— seleziona prodotto —</option></select></div><div id="prod-detail"><div class="empty-state"><h3>Seleziona un prodotto</h3></div></div></div>
 <div class="tab-panel" id="tab-insights"><div id="insights-content"><div class="empty-state"><h3>Carica i dati</h3></div></div></div>
 <div class="tab-panel" id="tab-qualita"><div id="qualita-content"><div class="empty-state"><h3>Carica i dati</h3></div></div></div>
 <div class="tab-panel" id="tab-pl"><div id="pl-content"><div class="empty-state"><h3>Carica i dati</h3></div></div></div>
+<div class="tab-panel" id="tab-plop"><div id="plop-content"><div class="empty-state"><h3>Carica i dati</h3></div></div></div>
 <div class="tab-panel" id="tab-marketing"><div id="marketing-content"><div class="empty-state"><h3>Carica i dati</h3></div></div></div>
 <div class="tab-panel" id="tab-monitor"><div id="monitor-global"></div><h3 style="font-size:16px;font-weight:700;margin:24px 0 14px">Stato fonti per prodotto</h3><div class="monitor-grid" id="monitor-per-prod"></div></div>
 
@@ -161,6 +162,7 @@ function switchTab(n,el) {
   document.getElementById('tab-'+n).classList.add('active');
   if(n==='prodotto'&&DL)populateProdSelect();
   if(n==='pl'&&DL)renderPL();
+  if(n==='plop'&&DL)renderPLOP();
   if(n==='marketing'&&DL)renderMarketing();
 }
 
@@ -545,6 +547,138 @@ function renderPL() {
     h += '<div><div style="font-size:12px;font-weight:700;color:var(--text3);margin-bottom:6px">MKTG GIÀ SPESO SUI FUTURI (NON RECUPERABILE)</div><div style="font-family:var(--mono);font-size:22px;font-weight:700;color:var(--red)">'+fE(totFMktg)+'</div><div style="font-size:12px;color:var(--text2)">Sunk cost indipendente dalla partenza</div></div>';
     h += '</div></div>';
   }
+  ct.innerHTML = h;
+}
+
+// ── TAB P&L OP (Prodotti B2C + Jakala + B2G) ─────────────────────
+function renderPLOP() {
+  if(!DL) return;
+  const ct = document.getElementById('plop-content');
+  const corsi = buildCorsi();
+  
+  // ── Prodotti B2C: dal P&L standard (revenue totale + costi totali del P&L Prodotti) ──
+  // Replica la logica di renderPL per coerenza
+  const mktg = DL.Mktg_ExEd || [];
+  const cfgFks = new Set(corsi.map(c => c.fk));
+  const orphanMktg = {};
+  for(const m of mktg) {
+    const s=(m.sigla||'').toUpperCase().split('-');
+    let fk=s.length>=3?nP(s[0])+'-'+s[2]:(m.sigla||'').toUpperCase();
+    if(!cfgFks.has(fk)){
+      if(!orphanMktg[m.sigla])orphanMktg[m.sigla]=0;
+      orphanMktg[m.sigla]+=(parseFloat(m.budgetSpeso)||0);
+    }
+  }
+  var corsiProds=new Set(corsi.map(c=>c.prod));
+  var BRAND_SIGLE={'BRAND':1,'EVENT':1};
+  var brandSpend=0;
+  (DL.Meta_Campaigns||[]).forEach(function(mc){
+    var s=(mc.sigle||'').split(',').filter(Boolean).map(function(x){return nP(x.trim());});
+    var spend=parseFloat(mc.spend)||0;if(spend<=0)return;
+    if(s.some(function(sig){return corsiProds.has(sig);}))return;
+    if(s.some(function(sig){return BRAND_SIGLE[sig];})){brandSpend+=spend;return;}
+    if(s.length>0){var key=s.join(',')+' ('+mc.campaignName.substring(0,30)+')';orphanMktg[key]=(orphanMktg[key]||0)+spend;}
+    else if(spend>50){orphanMktg[mc.campaignName.substring(0,40)]=(orphanMktg[mc.campaignName.substring(0,40)]||0)+spend;}
+  });
+  (DL.GAds_Campaigns||[]).forEach(function(gc){
+    var s=(gc.sigle||'').split(',').filter(Boolean).map(function(x){return nP(x.trim());});
+    var spend=parseFloat(gc.cost)||0;if(spend<=0)return;
+    if(s.some(function(sig){return corsiProds.has(sig);}))return;
+    if(s.some(function(sig){return BRAND_SIGLE[sig];})){brandSpend+=spend;return;}
+    if(s.length>0){var key=s.join(',')+' ('+gc.campaignName.substring(0,30)+')';orphanMktg[key]=(orphanMktg[key]||0)+spend;}
+    else if(spend>50){orphanMktg[gc.campaignName.substring(0,40)]=(orphanMktg[gc.campaignName.substring(0,40)]||0)+spend;}
+  });
+  for(var k in orphanMktg){if(orphanMktg[k]<50)delete orphanMktg[k];}
+  const orphanTotal = Object.values(orphanMktg).reduce((s,v)=>s+v,0) + brandSpend;
+  
+  const enriched = corsi.map(c=>{
+    const st = plStatus(c);
+    const partito = st==='done'||st==='active';
+    return {...c, st, partito, costiProd: partito ? c.costiTotali : 0, costiMktg: c.mktgPaid||0};
+  });
+  const b2cRevenue = enriched.reduce((s,c)=>s+c.revenueOA,0);
+  const b2cProd    = enriched.reduce((s,c)=>s+c.costiProd,0);
+  const b2cMktg    = enriched.reduce((s,c)=>s+c.costiMktg,0) + orphanTotal;
+  const b2cIscritti = enriched.reduce((s,c)=>s+c.iscrittiOA,0);
+  const b2cMargine = b2cRevenue - b2cProd - b2cMktg;
+  const b2cMargPct = b2cRevenue>0 ? Math.round(b2cMargine/b2cRevenue*100) : 0;
+  
+  // ── Jakala + B2G da OP_Revenue ──
+  const opData = DL.OP_Revenue || [];
+  const jkRow = opData.find(r => r.canale === 'Jakala') || {numero:0, revenue:0, pctProduzione:0.4, pctMarketing:0};
+  const b2gRow = opData.find(r => r.canale === 'B2G') || {numero:0, revenue:0, pctProduzione:0.5, pctMarketing:0};
+  
+  const jkNumero = parseFloat(jkRow.numero)||0;
+  const jkRevenue = parseFloat(jkRow.revenue)||0;
+  const jkProd = jkRevenue * (parseFloat(jkRow.pctProduzione)||0.4);
+  const jkMktg = jkRevenue * (parseFloat(jkRow.pctMarketing)||0);
+  const jkMargine = jkRevenue - jkProd - jkMktg;
+  const jkMargPct = jkRevenue>0 ? Math.round(jkMargine/jkRevenue*100) : 0;
+  
+  const b2gNumero = parseFloat(b2gRow.numero)||0;
+  const b2gRevenue = parseFloat(b2gRow.revenue)||0;
+  const b2gProd = b2gRevenue * (parseFloat(b2gRow.pctProduzione)||0.5);
+  const b2gMktg = b2gRevenue * (parseFloat(b2gRow.pctMarketing)||0);
+  const b2gMargine = b2gRevenue - b2gProd - b2gMktg;
+  const b2gMargPct = b2gRevenue>0 ? Math.round(b2gMargine/b2gRevenue*100) : 0;
+  
+  // Totali
+  const totNumero = b2cIscritti + jkNumero + b2gNumero;
+  const totRevenue = b2cRevenue + jkRevenue + b2gRevenue;
+  const totProd = b2cProd + jkProd + b2gProd;
+  const totMktg = b2cMktg + jkMktg + b2gMktg;
+  const totMargine = totRevenue - totProd - totMktg;
+  const totMargPct = totRevenue>0 ? Math.round(totMargine/totRevenue*100) : 0;
+  
+  let h = '';
+  
+  // ── 4 Card in alto ──
+  h += '<div class="kpi-row" style="margin-bottom:24px">';
+  h += '<div class="kpi"><div class="kpi-label">Prodotti B2C</div><div class="kpi-value" style="color:var(--green)">'+fE(b2cRevenue)+'</div><div class="kpi-sub">'+b2cIscritti+' iscritti</div></div>';
+  h += '<div class="kpi"><div class="kpi-label">Jakala</div><div class="kpi-value" style="color:var(--blue)">'+fE(jkRevenue)+'</div><div class="kpi-sub">'+(jkNumero>0?jkNumero+' progetti':'Fonte: JAKALA/HFBS')+'</div></div>';
+  h += '<div class="kpi"><div class="kpi-label">B2G</div><div class="kpi-value" style="color:var(--purple)">'+fE(b2gRevenue)+'</div><div class="kpi-sub">Fonte: Dashboard ExEd</div></div>';
+  h += '<div class="kpi"><div class="kpi-label">Totale</div><div class="kpi-value" style="color:var(--hfarm)">'+fE(totRevenue)+'</div><div class="kpi-sub">Somma canali OP</div></div>';
+  h += '</div>';
+  
+  // ── Tabella ──
+  h += '<div style="overflow-x:auto"><table class="mtable" style="min-width:800px">';
+  h += '<thead><tr style="background:#ddd8d0"><th style="color:var(--text1)">Canale</th><th class="num" style="color:var(--text1)">Numero</th><th class="num" style="color:var(--text1)">Revenue</th><th class="num" style="color:var(--text1)">Produzione</th><th class="num" style="color:var(--text1)">Marketing</th><th class="num" style="color:var(--text1)">Margine</th><th class="num" style="color:var(--text1)">Marg %</th></tr></thead><tbody>';
+  
+  var mkRow = function(label, num, rev, prod, mktg, marg, margPct, color) {
+    var margCol = marg>=0?'var(--green)':'var(--red)';
+    return '<tr><td style="font-weight:700;color:'+color+'">'+label+'</td>'+
+      '<td class="num">'+num+'</td>'+
+      '<td class="num" style="color:var(--green)">'+fE(rev)+'</td>'+
+      '<td class="num">'+fE(prod)+'</td>'+
+      '<td class="num">'+fE(mktg)+'</td>'+
+      '<td class="num" style="color:'+margCol+';font-weight:700">'+fE(marg)+'</td>'+
+      '<td class="num" style="color:'+margCol+';font-weight:700">'+margPct+'%</td></tr>';
+  };
+  
+  h += mkRow('Prodotti B2C', b2cIscritti, b2cRevenue, b2cProd, b2cMktg, b2cMargine, b2cMargPct, 'var(--green)');
+  h += mkRow('Jakala',       jkNumero,    jkRevenue,  jkProd,  jkMktg,  jkMargine,  jkMargPct,  'var(--blue)');
+  h += mkRow('B2G',          b2gNumero,   b2gRevenue, b2gProd, b2gMktg, b2gMargine, b2gMargPct, 'var(--purple)');
+  
+  // Riga totali
+  var totMargCol = totMargine>=0?'var(--green)':'var(--red)';
+  h += '<tr class="row-tot"><td>TOTALE</td>'+
+    '<td class="num">'+totNumero+'</td>'+
+    '<td class="num" style="color:var(--green)">'+fE(totRevenue)+'</td>'+
+    '<td class="num">'+fE(totProd)+'</td>'+
+    '<td class="num">'+fE(totMktg)+'</td>'+
+    '<td class="num" style="color:'+totMargCol+'">'+fE(totMargine)+'</td>'+
+    '<td class="num" style="color:'+totMargCol+'">'+totMargPct+'%</td></tr>';
+  
+  h += '</tbody></table></div>';
+  
+  // ── Note sui calcoli ──
+  h += '<div style="margin-top:16px;padding:14px 18px;background:var(--bg);border-radius:var(--radius);font-size:12px;color:var(--text2);line-height:1.7">';
+  h += '<b style="color:var(--text1)">Note sui calcoli:</b><br>';
+  h += '• <b>Prodotti B2C</b>: dati aggregati della tab P&L Prodotti (revenue O&A, costi produzione Budget_Prodotti, marketing Meta+GAds)<br>';
+  h += '• <b>Jakala</b>: numero e revenue da JAKALA/HFBS!TOTALI (B1 e B6) — produzione stimata al 40% della revenue, marketing 0<br>';
+  h += '• <b>B2G</b>: revenue da 25/26 Dashboard ExEd!B2G!H16 — produzione stimata al 50% della revenue, marketing 0';
+  h += '</div>';
+  
   ct.innerHTML = h;
 }
 
