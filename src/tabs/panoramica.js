@@ -155,7 +155,7 @@ export function renderPanoramica(corsi) {
     const hasFunnel = fs.some((s) => s.v > 0);
 
     const rl = c.revenueOA > 0 || c.revTarget > 0
-      ? `<div class="rev-line">Revenue: <b>${fE(c.revenueOA)}</b> / ${fEk(c.revTarget)}${c.revTarget > 0 ? ' — ' + Math.round((c.revenueOA / c.revTarget) * 100) + '%' : ''}</div>`
+      ? `<div class="rev-line"><span>Revenue</span><span class="rev-val"><b>${fEk(c.revenueOA)}</b> / ${fEk(c.revTarget)}${c.revTarget > 0 ? ' · ' + Math.round((c.revenueOA / c.revTarget) * 100) + '%' : ''}</span></div>`
       : '';
 
     const stInfo = cSt(c);
@@ -170,7 +170,7 @@ export function renderPanoramica(corsi) {
       + (isZR ? `<div class="corso-zr"><span>⚑ ZONA ROSSA</span><span>${days}gg · ${c.pctTarget}%</span></div>` : '')
       + `<div class="corso-name">${c.nome}</div>`
       + `<div class="corso-meta"><span class="corso-tag tag-intake">${il}</span><span class="corso-tag tag-tipo">${c.tipo || ''}</span><span class="corso-tag ${stC}">${stL}</span>${campBadge}${dataBadge}</div>`
-      + `<div class="corso-date">${sd ? sd + ' — ' : ''}${days > 0 ? `<b>${days}gg al via</b>` : days === 0 ? '<b>Oggi</b>' : '<b>In corso</b>'}${c.pricing > 0 ? `  |  <span style="font-family:var(--mono);font-weight:700;color:var(--ink)">${fE(c.pricing)}/persona</span>` : ''}</div>`
+      + `<div class="corso-date"><span>${sd ? sd + ' · ' : ''}${days > 0 ? `<b>${days}gg al via</b>` : days === 0 ? '<b>Oggi</b>' : '<b>In corso</b>'}</span>${c.pricing > 0 ? `<span class="price">${fEk(c.pricing)}/pax</span>` : ''}</div>`
       + `<div class="prog"><div class="prog-top"><span class="prog-label">Iscritti (O&A)</span><div class="prog-nums"><span class="prog-iscritti" style="color:${color}">${c.iscrittiOA}</span><span class="prog-target">/ ${c.target}</span><span class="prog-pct" style="background:${color}">${c.pctTarget}%</span></div></div>`
       + `<div class="prog-bar"><div class="prog-fill" style="width:${Math.min(c.pctTarget, 100)}%;background:${color}"></div>${bePct > 0 && bePct <= 100 ? `<div class="prog-marker" style="left:${bePct}%" title="Breakeven: ${beStudents} studenti"></div>` : ''}</div></div>`
       + rl

@@ -537,15 +537,22 @@ table.t tr.row-bad td{background:rgba(239,68,68,.04)}
 .ed-status-done{background:var(--bg-2);color:var(--ink-3)}
 
 /* Progress block alias */
-.prog{margin-bottom:12px}
+.prog{margin-bottom:16px}
+.prog-top{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px}
 .prog-nums{display:flex;align-items:baseline;gap:4px}
 .prog-label{font-size:10.5px;font-weight:800;color:var(--ink-3);text-transform:uppercase;letter-spacing:.08em}
-.prog-iscritti{font-weight:800;font-size:26px;letter-spacing:-.025em;line-height:1;font-feature-settings:'tnum';font-family:inherit}
+.prog-iscritti{font-weight:800;font-size:26px;letter-spacing:-.025em;line-height:1;font-feature-settings:'tnum';font-family:var(--sans)}
+.prog-target{font-family:var(--mono);font-size:12px;color:var(--ink-3);font-weight:500}
 .prog-pct{font-family:var(--mono);font-size:10.5px;font-weight:800;margin-left:8px;padding:3px 10px;border-radius:var(--r-pill);color:#fff}
 .prog-fill{height:100%;border-radius:var(--r-pill);transition:width .6s cubic-bezier(.4,0,.2,1)}
-.prog-marker{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--ink-2);border-radius:1px}
-.rev-line{font-size:11.5px;color:var(--ink-3);margin-bottom:12px;font-family:var(--mono);padding-top:10px;border-top:1px dashed var(--line)}
-.rev-line b{color:var(--violet-deep);font-weight:800}
+.prog-marker{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink-2);border-radius:1px}
+.rev-line{font-size:11.5px;color:var(--ink-3);margin-bottom:14px;padding:12px 0;border-top:1px dashed var(--line);display:flex;justify-content:space-between;align-items:baseline;font-family:var(--sans)}
+.rev-line .rev-val{font-family:var(--mono);font-weight:800;color:var(--ink)}
+.rev-line .rev-val b{color:var(--violet-deep);font-weight:800}
+
+/* Corso date allineato come design .card-date */
+.corso-date{font-size:11.5px;color:var(--ink-3);margin:12px 0 14px;display:flex;align-items:center;justify-content:space-between;padding-top:12px;border-top:1px dashed var(--line);gap:8px}
+.corso-date .price{font-family:var(--mono);color:var(--ink);font-weight:800;background:var(--bg-2);padding:4px 10px;border-radius:var(--r-pill);white-space:nowrap}
 
 /* Filters legacy (.filter-pill → design .chip) */
 .filters{display:flex;align-items:center;gap:6px;margin-bottom:18px;flex-wrap:wrap}
