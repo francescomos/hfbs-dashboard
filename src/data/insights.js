@@ -3,6 +3,9 @@ import { IF } from '../constants.js';
 import { fE } from '../utils/format.js';
 import { nP, dTS, cSt } from '../utils/normalize.js';
 import { buildCorsi } from './buildCorsi.js';
+import {
+  ZR_PCT_TARGET, ZR_MAX_DAYS, CPA_ALERT, NO_SHOW_ALERT_PCT,
+} from './thresholds.js';
 
 /**
  * Suggerimenti automatici basati sullo stato dei corsi.
@@ -19,13 +22,13 @@ export function buildSuggestions() {
 
   const zr = corsi.filter((c) => {
     const d = dTS(c);
-    return c.pctTarget < 70 && d > 0 && d <= 45;
+    return c.pctTarget < ZR_PCT_TARGET && d > 0 && d <= ZR_MAX_DAYS;
   });
   if (zr.length > 0) {
     out.push({
       level: 'crit',
       title: `${zr.length} cors${zr.length > 1 ? 'i' : 'o'} in zona rossa`,
-      text: `<b>${zr.map((c) => c.nome + ' (' + (IF[c.intake] || c.intake) + ')').join(', ')}</b>: meno di 45 giorni al via e sotto il 70% del target. Priorità massima: accelerare outbound, valutare early-bird o rinvio.`,
+      text: `<b>${zr.map((c) => c.nome + ' (' + (IF[c.intake] || c.intake) + ')').join(', ')}</b>: meno di ${ZR_MAX_DAYS} giorni al via e sotto il ${ZR_PCT_TARGET}% del target. Priorità massima: accelerare outbound, valutare early-bird o rinvio.`,
     });
   }
 
@@ -46,13 +49,13 @@ export function buildSuggestions() {
   // No-show tasso alto (stage 'No Show' nei deal Brevo vs colloqui)
   const hNS = corsi.filter((c) => {
     const ns = c.brevoStages?.['No Show'] || 0;
-    return c.calAll > 0 && ns / c.calAll > 0.15;
+    return c.calAll > 0 && (ns / c.calAll) * 100 > NO_SHOW_ALERT_PCT;
   });
   if (hNS.length > 0) {
     out.push({
       level: 'warn',
       title: 'No-show elevati',
-      text: `${hNS.length} edizion${hNS.length > 1 ? 'i' : 'e'} con tasso no-show &gt;15%. Considera SMS reminder 24h prima del colloquio.`,
+      text: `${hNS.length} edizion${hNS.length > 1 ? 'i' : 'e'} con tasso no-show &gt;${NO_SHOW_ALERT_PCT}%. Considera SMS reminder 24h prima del colloquio.`,
     });
   }
 
@@ -68,11 +71,11 @@ export function buildSuggestions() {
   }
 
   const hiCPA = corsi.filter((c) => c.cpa > 0).sort((a, b) => b.cpa - a.cpa)[0];
-  if (hiCPA && hiCPA.cpa > 1000) {
+  if (hiCPA && hiCPA.cpa > CPA_ALERT) {
     out.push({
       level: 'info',
       title: 'CPA più alto del benchmark',
-      text: `<b>${hiCPA.nome}</b>: CPA ${fE(hiCPA.cpa)} su ${IF[hiCPA.intake] || hiCPA.intake}. Valutare shift budget Google → Meta/referral.`,
+      text: `<b>${hiCPA.nome}</b>: CPA ${fE(hiCPA.cpa)} su ${IF[hiCPA.intake] || hiCPA.intake} (soglia ${fE(CPA_ALERT)}). Valutare shift budget Google → Meta/referral.`,
     });
   }
 

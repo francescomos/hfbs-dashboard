@@ -135,8 +135,15 @@ export function renderProdotto() {
 
   const filteredCorsi = state.selectedEdition ? corsi.filter((c) => c.intake === state.selectedEdition) : corsi;
 
-  // Funnel attesi vs reali (Chart.js, aggregato su filteredCorsi)
-  h += `<div class="section"><div class="section-title"><span class="tt-left">Funnel attesi vs reali</span><span class="tt-right">${state.selectedEdition ? (IF[state.selectedEdition] || state.selectedEdition) : 'tutte le edizioni'}</span></div><div class="chart-wrap h-340"><canvas id="chartFunnel"></canvas></div></div>`;
+  // Funnel attesi vs reali (Chart.js, aggregato su filteredCorsi).
+  // Se Mktg_ExEd non ha obiettivi per nessuna edizione → il chart mostra solo "Reali"
+  // e il caller aggiunge una nota.
+  const hasExpectedObj = filteredCorsi.some((c) => (parseFloat(c.leadAttesi) || 0) + (parseFloat(c.colloquiAttesi) || 0) + (parseFloat(c.iscrittiAttesi) || 0) > 0);
+  h += `<div class="section"><div class="section-title"><span class="tt-left">Funnel ${hasExpectedObj ? 'attesi vs reali' : '(solo reali)'}</span><span class="tt-right">${state.selectedEdition ? (IF[state.selectedEdition] || state.selectedEdition) : 'tutte le edizioni'}</span></div>`;
+  if (!hasExpectedObj) {
+    h += `<div style="font-size:11.5px;color:var(--ink-3);margin-bottom:10px;font-family:var(--mono)">⚠ Obiettivi (lead/colloqui/iscritti attesi) non impostati in Mktg_ExEd per questo prodotto</div>`;
+  }
+  h += `<div class="chart-wrap h-340"><canvas id="chartFunnel"></canvas></div></div>`;
 
   // Revenue per edizione + donut canali affiancati
   const chKeys = ['b2b', 'b2c', 'jakala', 'referral', 'partner', 'free'];

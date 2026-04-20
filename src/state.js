@@ -6,6 +6,7 @@ export const state = {
   selectedEdition: null,
   plFilter: 'all',
   qaExpanded: null,
+  search: '',
 };
 
 export function setDL(data) {

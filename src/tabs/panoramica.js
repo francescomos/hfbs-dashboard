@@ -6,7 +6,8 @@ import { $ } from '../utils/dom.js';
 import { buildCorsi } from '../data/buildCorsi.js';
 import { getRealSpend, getActiveCampaignCount } from '../data/helpers.js';
 import { buildSuggestions, suggestCardHTML } from '../data/insights.js';
-import { drawRevenueTrend, drawIntakeDonut } from '../charts/chartjs.js';
+import { drawRevenuePerIntake, drawIntakeDonut } from '../charts/chartjs.js';
+import { ZR_PCT_TARGET, ZR_MAX_DAYS } from '../data/thresholds.js';
 
 export function renderFilters(corsi) {
   const ii = [...new Set(corsi.map((x) => x.edizione).filter(Boolean))];
@@ -21,6 +22,11 @@ export function renderFilters(corsi) {
     `<span class="filter-label">Intake</span>`
     + `<button class="chip active" data-filter="all">Tutti <span class="cnt">${corsi.length}</span></button>`
     + ii.map((i) => `<button class="chip" data-filter="${i}">${IF[IS[i]] || i} <span class="cnt">${counts[i] || 0}</span></button>`).join('');
+}
+
+export function setSearch(q) {
+  state.search = q || '';
+  if (state.DL) renderPanoramica(buildCorsi());
 }
 
 export function setFilter(filter, el) {
@@ -52,7 +58,7 @@ export function renderPanoramica(corsi) {
   const pt = tt > 0 ? Math.round((ti / tt) * 100) : 0;
   const rp = trt > 0 ? Math.round((tr / trt) * 100) : 0;
   const realMktgCost = getRealSpend();
-  const zr = v.filter((c) => c.pctTarget < 70 && dTS(c) > 0 && dTS(c) <= 45);
+  const zr = v.filter((c) => c.pctTarget < ZR_PCT_TARGET && dTS(c) > 0 && dTS(c) <= ZR_MAX_DAYS);
 
   const kpis = [
     { k: 'iscritti', hero: 'hero-brand', lbl: 'Iscritti (O&A)', val: ti.toLocaleString('it-IT'), sub: `target ${tt} · ${pt}%`, tip: 'Iscritti ufficiali O&A (somma aggregata del file O&A).' },
@@ -82,19 +88,18 @@ export function renderPanoramica(corsi) {
     if (suggestions.length > 0) {
       sugHtml += `<div class="section"><div class="section-title"><span class="tt-left">Suggerimenti automatici</span><span class="tt-right">generati sui dati correnti</span></div>${suggestions.map(suggestCardHTML).join('')}</div>`;
     }
-    // Chart grid: revenue trend + donut intake
+    // Chart grid: revenue per intake (reale vs target) + donut iscritti per intake
     const intakesForDonut = [...new Set(v.map((c) => c.intake).filter(Boolean))];
     if (v.length > 0) {
       sugHtml += `<div class="grid-2-1" style="margin-bottom:14px">`
-        + `<div class="section" style="margin-bottom:0"><div class="section-title"><span class="tt-left">Revenue cumulata · anno in corso</span><span class="tt-right">${new Date().toLocaleDateString('it-IT', { day: '2-digit', month: 'short' })}</span></div><div class="chart-wrap h-260"><canvas id="chartTrend"></canvas></div></div>`
+        + `<div class="section" style="margin-bottom:0"><div class="section-title"><span class="tt-left">Revenue per intake</span><span class="tt-right">reale vs target · fonte O&A Summary</span></div><div class="chart-wrap h-260"><canvas id="chartRevIntake"></canvas></div></div>`
         + `<div class="section" style="margin-bottom:0"><div class="section-title"><span class="tt-left">Iscritti per intake</span><span class="tt-right">${ti} totali</span></div><div class="chart-wrap h-260"><canvas id="chartIntake"></canvas></div></div>`
         + `</div>`;
     }
     sugWrap.innerHTML = sugHtml;
 
-    // Disegna chart dopo inject del canvas
-    if (v.length > 0 && state.DL) {
-      drawRevenueTrend('chartTrend', v, state.DL);
+    if (v.length > 0) {
+      drawRevenuePerIntake('chartRevIntake', v, intakesForDonut);
       drawIntakeDonut('chartIntake', v, intakesForDonut);
     }
   }
@@ -105,22 +110,31 @@ export function renderPanoramica(corsi) {
   else if (state.sortBy === 'candidature') sorted.sort((a, b) => (b.gfCount + b.brevoDeals.length) - (a.gfCount + a.brevoDeals.length));
   else if (state.sortBy === 'colloqui') sorted.sort((a, b) => b.calAll - a.calAll);
   else if (state.sortBy === 'attivi') sorted = sorted.filter((c) => { const s = cSt(c); return s === 'selling' || s === 'active'; });
-  else if (state.sortBy === 'zonarossa') sorted = sorted.filter((c) => c.pctTarget < 70 && dTS(c) > 0 && dTS(c) <= 45);
+  else if (state.sortBy === 'zonarossa') sorted = sorted.filter((c) => c.pctTarget < ZR_PCT_TARGET && dTS(c) > 0 && dTS(c) <= ZR_MAX_DAYS);
   else sorted.sort((a, b) => {
-    const az = a.pctTarget < 70 && dTS(a) > 0 && dTS(a) <= 45;
-    const bz = b.pctTarget < 70 && dTS(b) > 0 && dTS(b) <= 45;
+    const az = a.pctTarget < ZR_PCT_TARGET && dTS(a) > 0 && dTS(a) <= ZR_MAX_DAYS;
+    const bz = b.pctTarget < ZR_PCT_TARGET && dTS(b) > 0 && dTS(b) <= ZR_MAX_DAYS;
     if (az !== bz) return az ? -1 : 1;
     return a.pctTarget - b.pctTarget;
   });
 
+  // Search filter (apply on name and sigla)
+  if (state.search) {
+    const q = state.search.toLowerCase();
+    sorted = sorted.filter((c) =>
+      (c.nome || '').toLowerCase().includes(q)
+      || (c.sig || '').toLowerCase().includes(q)
+      || (c.prod || '').toLowerCase().includes(q));
+  }
+
   const grid = $('corso-grid');
   if (!sorted.length) {
-    grid.innerHTML = '<div class="empty-state"><h3>Nessun corso</h3></div>';
+    grid.innerHTML = `<div class="empty-state"><h3>${state.search ? 'Nessun match per “' + state.search + '”' : 'Nessun corso'}</h3></div>`;
     return;
   }
   grid.innerHTML = sorted.map((c) => {
     const days = dTS(c);
-    const isZR = c.pctTarget < 70 && days > 0 && days <= 45;
+    const isZR = c.pctTarget < ZR_PCT_TARGET && days > 0 && days <= ZR_MAX_DAYS;
     const color = bC(c.pctTarget);
     const il = IF[c.intake] || c.edizione || c.intake;
     const sd = c.startDate ? fD(c.startDate) : '';

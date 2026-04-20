@@ -24,14 +24,17 @@
     </div>
   </div>
   <div class="topbar-center">
-    <div class="search-mock"><span class="s-icon">⌕</span>Cerca edizione, sigla, fonte…</div>
+    <label class="search-mock" for="search-input" style="padding:0">
+      <span class="s-icon" style="padding-left:16px">⌕</span>
+      <input id="search-input" type="text" placeholder="Cerca corso o sigla…" autocomplete="off"
+             style="flex:1;padding:9px 16px 9px 8px;border:none;background:transparent;font:inherit;color:var(--ink);outline:none">
+    </label>
   </div>
   <div class="topbar-right">
     <span class="pill"><span class="live-dot"></span>LIVE</span>
     <span id="last-update" class="pill pill-ghost">—</span>
     <button class="btn" id="btn-change-url" title="Cambia URL del datalake">URL</button>
     <button class="btn btn-green" id="btn-refresh">Aggiorna</button>
-    <div class="avatar">EB</div>
   </div>
 </div>
 
@@ -48,12 +51,6 @@
     <div class="sub" id="header-sub">Caricamento dati dal datalake…</div>
   </div>
   <div class="header-right">
-    <div class="date-chips">
-      <button data-range="7">7g</button>
-      <button data-range="30">30g</button>
-      <button class="active" data-range="ytd">Anno in corso</button>
-      <button data-range="all">Storico</button>
-    </div>
     <div class="today-chip" id="today-chip"></div>
   </div>
 </div>

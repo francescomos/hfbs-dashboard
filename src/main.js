@@ -4,7 +4,7 @@ import { $ } from './utils/dom.js';
 import { fetchDatalake, getDatalakeUrl, saveDatalakeUrl, updateLastRefreshLabel } from './data/fetch.js';
 import { buildCorsi } from './data/buildCorsi.js';
 import {
-  renderPanoramica, renderFilters, attachPanoramicaHandlers,
+  renderPanoramica, renderFilters, attachPanoramicaHandlers, setSearch,
 } from './tabs/panoramica.js';
 import { populateProdSelect, renderProdotto, attachProdottoHandlers } from './tabs/prodotto.js';
 import { renderMarketing } from './tabs/marketing.js';
@@ -82,6 +82,26 @@ function initTabs() {
   });
 }
 
+function initSearch() {
+  const input = $('search-input');
+  if (!input) return;
+  let timer = null;
+  input.addEventListener('input', (e) => {
+    clearTimeout(timer);
+    const q = e.target.value.trim();
+    timer = setTimeout(() => {
+      setSearch(q);
+      // quando si cerca, torna su Panoramica per vedere i risultati
+      const active = document.querySelector('.tab.active');
+      if (active && active.dataset.tab !== 'panoramica') {
+        const tab = document.querySelector('.tab[data-tab="panoramica"]');
+        if (tab) tab.click();
+      }
+    }, 150);
+  });
+  input.addEventListener('keydown', (e) => { if (e.key === 'Escape') { input.value = ''; setSearch(''); } });
+}
+
 function initSetup() {
   const saved = localStorage.getItem(STORAGE_KEY);
   const input = $('url-input');
@@ -102,5 +122,6 @@ document.addEventListener('DOMContentLoaded', () => {
   attachProdottoHandlers();
   attachQualitaHandlers();
   attachPLHandlers();
+  initSearch();
   refreshData();
 });

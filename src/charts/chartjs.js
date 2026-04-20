@@ -14,9 +14,7 @@ export function destroyAllCharts() {
   for (const id of Object.keys(INSTANCES)) destroyChart(id);
 }
 
-function getChart() {
-  return window.Chart;
-}
+const getChart = () => window.Chart;
 
 function applyGlobalDefaults() {
   const C = getChart();
@@ -30,10 +28,10 @@ const P = {
   brand: '#2d6965', brand2: '#134e48', brandL: '#d7ebe7',
   mint: '#7dd3c0', mint2: '#5dbfa8', mintL: '#d4f1ea',
   peach: '#fdba9d', peach2: '#fb9d7b',
-  amber: '#fcd34d', amber2: '#f5bc2a', amberDeep: '#a07502',
-  sky: '#93c5fd', skyDeep: '#2563eb',
+  amber: '#fcd34d', amber2: '#f5bc2a',
+  sky: '#93c5fd',
   pink: '#f9a8d4',
-  alert: '#ef4444', alert2: '#dc2626',
+  alert: '#ef4444',
   ink: '#1f2937', ink2: '#475569', ink3: '#64748b', ink4: '#94a3b8',
   line: '#ecebf2',
 };
@@ -41,10 +39,11 @@ const P = {
 const CHART_COLORS = [P.brand, P.mint2, P.peach2, P.sky, P.pink, P.amber2];
 
 /**
- * Trend revenue cumulata settimanale (costruita dai Brevo_Deals Closed Won per data di chiusura,
- * oppure stima dai Config_Corsi+OA_Summary quando non disponibile).
+ * Revenue reale vs target per intake.
+ * Dato: aggregato diretto da corsi.revenueOA e corsi.revTarget per intake.
+ * Zero fallback: se un intake ha target=0 o revenue=0, lo mostra a 0.
  */
-export function drawRevenueTrend(canvasId, corsi, DL) {
+export function drawRevenuePerIntake(canvasId, corsi, intakes) {
   const C = getChart();
   if (!C) return;
   applyGlobalDefaults();
@@ -52,79 +51,34 @@ export function drawRevenueTrend(canvasId, corsi, DL) {
   const el = document.getElementById(canvasId);
   if (!el) return;
 
-  // Costruisci curve mensili fino ad oggi
-  const deals = (DL.Brevo_Deals || []).filter((d) => d.stage === 'Closed Won' && (d.modifiedAt || d.closeDate));
-  const now = new Date();
-  const year = now.getFullYear();
-  const months = Array.from({ length: 12 }, (_, i) => i); // 0..11
-  const monthLabels = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic'];
-  const byMonth = months.map(() => 0);
-
-  for (const d of deals) {
-    const dt = new Date(d.modifiedAt || d.closeDate);
-    if (isNaN(dt) || dt.getFullYear() !== year) continue;
-    const m = dt.getMonth();
-    const amount = parseFloat(d.amount || d.value || 0) || 0;
-    byMonth[m] += amount;
-  }
-
-  const curMonth = now.getMonth();
-  // Se non c'è amount nei deal, fallback: distribuiamo revenueOA in modo cumulativo fino a oggi
-  const hasAmount = byMonth.reduce((s, v) => s + v, 0) > 0;
-  const totalRev = corsi.reduce((s, c) => s + c.revenueOA, 0);
-  const totalTarget = corsi.reduce((s, c) => s + c.revTarget, 0);
-
-  // Curva cumulata
-  let real = [];
-  let cumul = 0;
-  for (let i = 0; i <= curMonth; i++) {
-    cumul += hasAmount ? byMonth[i] : (totalRev * (i + 1) / (curMonth + 1) - cumul);
-    real.push(Math.round(cumul));
-  }
-  for (let i = curMonth + 1; i < 12; i++) real.push(null);
-
-  // Target cumulato lineare (stagionalità approssimata)
-  const curve = [0.03, 0.07, 0.12, 0.18, 0.26, 0.34, 0.42, 0.51, 0.62, 0.73, 0.86, 1.0];
-  const target = curve.map((p) => Math.round(totalTarget * p));
+  const labels = intakes.map((i) => IF[i] || i);
+  const real = intakes.map((i) => corsi.filter((c) => c.intake === i).reduce((s, c) => s + c.revenueOA, 0));
+  const target = intakes.map((i) => corsi.filter((c) => c.intake === i).reduce((s, c) => s + c.revTarget, 0));
 
   INSTANCES[canvasId] = new C(el.getContext('2d'), {
-    type: 'line',
+    type: 'bar',
     data: {
-      labels: monthLabels,
+      labels,
       datasets: [
-        { label: 'Target', data: target, borderColor: P.ink4, backgroundColor: 'transparent', borderDash: [6, 4], borderWidth: 1.5, tension: .4, pointRadius: 0, pointHoverRadius: 0 },
-        {
-          label: 'Revenue reale', data: real, borderColor: P.brand,
-          backgroundColor: (c) => {
-            const { ctx, chartArea } = c.chart;
-            if (!chartArea) return null;
-            const g = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-            g.addColorStop(0, 'rgba(45,105,101,.35)');
-            g.addColorStop(1, 'rgba(45,105,101,0)');
-            return g;
-          },
-          borderWidth: 3, tension: .42, fill: true,
-          pointRadius: (c) => (c.dataIndex === curMonth ? 5 : 0),
-          pointBackgroundColor: P.brand, pointBorderColor: '#fff', pointBorderWidth: 2,
-          pointHoverRadius: 7,
-        },
+        { label: 'Target', data: target, backgroundColor: P.brandL, borderRadius: 8, barPercentage: .7, categoryPercentage: .65 },
+        { label: 'Reale', data: real, backgroundColor: P.brand, borderRadius: 8, barPercentage: .7, categoryPercentage: .65 },
       ],
     },
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: {
-        legend: { display: true, position: 'bottom', labels: { boxWidth: 8, boxHeight: 8, usePointStyle: true, pointStyle: 'circle', font: { size: 11, weight: '600' }, color: P.ink3 } },
+        legend: { position: 'bottom', labels: { boxWidth: 10, boxHeight: 10, usePointStyle: true, pointStyle: 'circle', font: { size: 11, weight: '600' }, color: P.ink2, padding: 14 } },
         tooltip: { backgroundColor: P.ink, padding: 10, cornerRadius: 10, callbacks: { label: (ctx) => ctx.dataset.label + ': ' + fEk(ctx.parsed.y || 0) } },
       },
       scales: {
-        x: { grid: { display: false }, ticks: { color: P.ink4, font: { family: "'JetBrains Mono'", size: 10 } } },
+        x: { grid: { display: false }, ticks: { color: P.ink3, font: { size: 11, weight: '600' } } },
         y: { grid: { color: P.line }, ticks: { color: P.ink4, font: { family: "'JetBrains Mono'", size: 10 }, callback: (v) => fEk(v) } },
       },
     },
   });
 }
 
-/** Donut iscritti per intake */
+/** Donut iscritti per intake (dato reale: somma iscrittiOA per intake). */
 export function drawIntakeDonut(canvasId, corsi, intakes) {
   const C = getChart();
   if (!C) return;
@@ -151,7 +105,12 @@ export function drawIntakeDonut(canvasId, corsi, intakes) {
   });
 }
 
-/** Funnel orizzontale attesi vs reali */
+/**
+ * Funnel orizzontale attesi vs reali.
+ * "Attesi" letti SOLO da Mktg_ExEd (c.leadAttesi, c.colloquiAttesi, c.iscrittiAttesi).
+ * Se nessuna edizione ha obiettivi impostati → hasExpected=false: il caller decide
+ * se mostrare il chart (solo reali) o un messaggio.
+ */
 export function drawFunnelChart(canvasId, corsi) {
   const C = getChart();
   if (!C) return;
@@ -161,11 +120,12 @@ export function drawFunnelChart(canvasId, corsi) {
   if (!el) return;
 
   const a = corsi.reduce((acc, c) => ({
-    lead: acc.lead + Math.round(c.leadAttesi || c.target * 6),
-    coll: acc.coll + Math.round(c.colloquiAttesi || c.target * 2.2),
-    contr: acc.contr + Math.round(c.colloquiAttesi * 0.5 || c.target * 1.1),
-    iscr: acc.iscr + Math.round(parseFloat(c.iscrittiAttesi) || c.target),
-  }), { lead: 0, coll: 0, contr: 0, iscr: 0 });
+    lead: acc.lead + (parseFloat(c.leadAttesi) || 0),
+    coll: acc.coll + (parseFloat(c.colloquiAttesi) || 0),
+    iscr: acc.iscr + (parseFloat(c.iscrittiAttesi) || 0),
+  }), { lead: 0, coll: 0, iscr: 0 });
+  const hasExpected = a.lead > 0 || a.coll > 0 || a.iscr > 0;
+
   const r = corsi.reduce((acc, c) => ({
     lead: acc.lead + c.gfCount + c.brevoDeals.length,
     coll: acc.coll + c.calAll,
@@ -173,15 +133,19 @@ export function drawFunnelChart(canvasId, corsi) {
     iscr: acc.iscr + c.iscrittiOA,
   }), { lead: 0, coll: 0, contr: 0, iscr: 0 });
 
+  const labels = hasExpected ? ['Lead', 'Colloqui', 'Iscritti'] : ['Lead', 'Colloqui', 'Contratti', 'Iscritti'];
+  const datasets = hasExpected
+    ? [
+      { label: 'Attesi (Mktg_ExEd)', data: [a.lead, a.coll, a.iscr], backgroundColor: P.brandL, borderColor: P.brand, borderWidth: 1.5, borderRadius: 10, barPercentage: .7, categoryPercentage: .75 },
+      { label: 'Reali', data: [r.lead, r.coll, r.iscr], backgroundColor: P.brand, borderRadius: 10, barPercentage: .7, categoryPercentage: .75 },
+    ]
+    : [
+      { label: 'Reali', data: [r.lead, r.coll, r.contr, r.iscr], backgroundColor: P.brand, borderRadius: 10, barPercentage: .7, categoryPercentage: .75 },
+    ];
+
   INSTANCES[canvasId] = new C(el.getContext('2d'), {
     type: 'bar',
-    data: {
-      labels: ['Lead', 'Colloqui', 'Contratti', 'Iscritti'],
-      datasets: [
-        { label: 'Attesi', data: [a.lead, a.coll, a.contr, a.iscr], backgroundColor: P.brandL, borderColor: P.brand, borderWidth: 1.5, borderRadius: 10, barPercentage: .7, categoryPercentage: .75 },
-        { label: 'Reali', data: [r.lead, r.coll, r.contr, r.iscr], backgroundColor: P.brand, borderRadius: 10, barPercentage: .7, categoryPercentage: .75 },
-      ],
-    },
+    data: { labels, datasets },
     options: {
       indexAxis: 'y', responsive: true, maintainAspectRatio: false,
       plugins: {
@@ -194,9 +158,10 @@ export function drawFunnelChart(canvasId, corsi) {
       },
     },
   });
+
+  return hasExpected;
 }
 
-/** Donut canali */
 export function drawChannelsDonut(canvasId, chKeys, chTot) {
   const C = getChart();
   if (!C) return;
@@ -224,7 +189,6 @@ export function drawChannelsDonut(canvasId, chKeys, chTot) {
   });
 }
 
-/** Bar revenue per edizione (reale vs target) */
 export function drawRevPerEdition(canvasId, corsi) {
   const C = getChart();
   if (!C) return;
@@ -256,7 +220,6 @@ export function drawRevPerEdition(canvasId, corsi) {
   });
 }
 
-/** Performance estreme (top 3 vs bottom 3 pctTarget) */
 export function drawPerfChart(canvasId, corsi) {
   const C = getChart();
   if (!C) return;
@@ -291,68 +254,6 @@ export function drawPerfChart(canvasId, corsi) {
       scales: {
         x: { grid: { color: P.line }, ticks: { color: P.ink4, font: { family: "'JetBrains Mono'", size: 10 }, callback: (v) => v + '%' }, max: 140 },
         y: { grid: { display: false }, ticks: { color: P.ink2, font: { size: 10, weight: '600' }, autoSkip: false } },
-      },
-    },
-  });
-}
-
-/** Bar tempo conversione per prodotto */
-export function drawConvChart(canvasId, entries) {
-  const C = getChart();
-  if (!C) return;
-  applyGlobalDefaults();
-  destroyChart(canvasId);
-  const el = document.getElementById(canvasId);
-  if (!el) return;
-
-  const rows = entries.slice(0, 12);
-  const colors = rows.map(([, v]) => (v <= 14 ? P.mint2 : v <= 30 ? P.amber2 : P.alert));
-
-  INSTANCES[canvasId] = new C(el.getContext('2d'), {
-    type: 'bar',
-    data: {
-      labels: rows.map((r) => r[0]),
-      datasets: [{ data: rows.map((r) => r[1]), backgroundColor: colors, borderRadius: 8, barPercentage: .8 }],
-    },
-    options: {
-      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: { backgroundColor: P.ink, padding: 10, cornerRadius: 10, callbacks: { label: (ctx) => ctx.parsed.x + ' gg' } },
-      },
-      scales: {
-        x: { grid: { color: P.line }, ticks: { color: P.ink4, font: { family: "'JetBrains Mono'", size: 10 }, callback: (v) => v + 'gg' } },
-        y: { grid: { display: false }, ticks: { color: P.ink2, font: { family: "'JetBrains Mono'", size: 11, weight: '600' } } },
-      },
-    },
-  });
-}
-
-/** Bar motivi perdita deal */
-export function drawLostChart(canvasId, lostReasons) {
-  const C = getChart();
-  if (!C) return;
-  applyGlobalDefaults();
-  destroyChart(canvasId);
-  const el = document.getElementById(canvasId);
-  if (!el) return;
-
-  INSTANCES[canvasId] = new C(el.getContext('2d'), {
-    type: 'bar',
-    data: {
-      labels: lostReasons.map((r) => r[0]),
-      datasets: [{
-        data: lostReasons.map((r) => r[1]),
-        backgroundColor: ['#fca5a5', '#fdba74', '#fcd34d', '#a7f3d0', '#bfdbfe', '#c4b5fd', '#f9a8d4'].slice(0, lostReasons.length),
-        borderRadius: 8, barPercentage: .75,
-      }],
-    },
-    options: {
-      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false }, tooltip: { backgroundColor: P.ink, padding: 10, cornerRadius: 10 } },
-      scales: {
-        x: { grid: { color: P.line }, ticks: { color: P.ink4, font: { family: "'JetBrains Mono'", size: 10 } } },
-        y: { grid: { display: false }, ticks: { color: P.ink2, font: { size: 11, weight: '600' } } },
       },
     },
   });
