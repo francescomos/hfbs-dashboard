@@ -43,9 +43,10 @@ function updateTodayChip() {
 
 function switchTab(name, el) {
   document.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
-  document.querySelectorAll('.tab-panel').forEach((p) => p.classList.remove('active'));
+  document.querySelectorAll('.panel, .tab-panel').forEach((p) => p.classList.remove('active'));
   el.classList.add('active');
-  $('tab-' + name).classList.add('active');
+  const panel = $('p-' + name) || $('tab-' + name);
+  if (panel) panel.classList.add('active');
   if (!state.DL) return;
   if (name === 'prodotto') populateProdSelect();
   if (name === 'pl') renderPL();
