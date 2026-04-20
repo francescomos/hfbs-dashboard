@@ -4,6 +4,7 @@ import { fE } from '../utils/format.js';
 import { nP } from '../utils/normalize.js';
 import { $ } from '../utils/dom.js';
 import { getRealSpend } from '../data/helpers.js';
+import { drawPerfChart } from '../charts/chartjs.js';
 
 export function renderInsights(corsi) {
   const DL = state.DL;
@@ -80,55 +81,63 @@ export function renderInsights(corsi) {
   const totCol = corsi.reduce((s, c) => s + c.calAll, 0);
   const costPerCol = totCol > 0 ? Math.round(realMktgInsights / totCol) : 0;
 
-  let h = '<div class="kpi-row" style="margin-bottom:24px">'
-    + `<div class="kpi"><div class="kpi-label">Tempo medio conv.</div><div class="kpi-value" style="color:var(--blue)">${Math.round(globalConvDays)}<span style="font-size:14px;color:var(--text3)"> gg</span></div><div class="kpi-sub">${wonDeals.length} deal Closed Won</div></div>`
-    + `<div class="kpi"><div class="kpi-label">Deal fermi &gt;30gg</div><div class="kpi-value" style="color:${ag.o30 > 5 ? 'var(--red)' : 'var(--amber)'}">${ag.o30}</div><div class="kpi-sub">Si raffreddano senza follow-up</div></div>`
-    + `<div class="kpi"><div class="kpi-label">Closed Lost</div><div class="kpi-value" style="color:var(--red)">${lostDeals.length}</div><div class="kpi-sub">Deal persi totali</div></div>`
-    + `<div class="kpi"><div class="kpi-label">No Show</div><div class="kpi-value" style="color:var(--amber)">${noShowDeals.length}</div><div class="kpi-sub">Colloqui mancati</div></div>`
-    + `<div class="kpi"><div class="kpi-label">Costo per Colloquio</div><div class="kpi-value" style="color:var(--purple)">${fE(costPerCol)}</div><div class="kpi-sub">Budget speso ÷ colloqui</div></div>`
-    + `<div class="kpi"><div class="kpi-label">Margine medio</div><div class="kpi-value" style="color:${marginPct >= 0 ? 'var(--green)' : 'var(--red)'}">${marginPct}%</div><div class="kpi-sub">${fE(totRev)} rev — ${fE(totCost)} costi</div></div>`
-    + '</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">';
+  let h = '<div class="kpi-grid" style="margin-bottom:24px">'
+    + `<div class="kpi" data-tip="Giorni medi da creazione deal Brevo a stage Closed Won."><div class="kpi-label">Tempo medio conv.<span class="info">i</span></div><div class="kpi-value" style="color:var(--sky-deep)">${Math.round(globalConvDays)}<span class="unit">gg</span></div><div class="kpi-sub">${wonDeals.length} deal Closed Won</div></div>`
+    + `<div class="kpi" data-tip="Deal in stage Booked/Interviewed/Negotiation da >30 giorni."><div class="kpi-label">Deal fermi &gt;30gg<span class="info">i</span></div><div class="kpi-value" style="color:${ag.o30 > 5 ? 'var(--alert-2)' : 'var(--amber-deep)'}">${ag.o30}</div><div class="kpi-sub">Richiedono follow-up</div></div>`
+    + `<div class="kpi" data-tip="Deal passati a Closed Lost."><div class="kpi-label">Closed Lost<span class="info">i</span></div><div class="kpi-value" style="color:var(--alert-2)">${lostDeals.length}</div><div class="kpi-sub">Deal persi totali</div></div>`
+    + `<div class="kpi" data-tip="Persone che hanno prenotato colloquio ma non si sono presentate."><div class="kpi-label">No Show<span class="info">i</span></div><div class="kpi-value" style="color:var(--amber-deep)">${noShowDeals.length}</div><div class="kpi-sub">Colloqui mancati</div></div>`
+    + `<div class="kpi" data-tip="Budget marketing / colloqui Calendly."><div class="kpi-label">Costo / colloquio<span class="info">i</span></div><div class="kpi-value" style="color:var(--brand-deep)">${fE(costPerCol)}</div><div class="kpi-sub">Su ${fE(realMktgInsights)} speso</div></div>`
+    + `<div class="kpi" data-tip="Margine netto aggregato. Target: >30%."><div class="kpi-label">Margine medio<span class="info">i</span></div><div class="kpi-value" style="color:${marginPct >= 25 ? 'var(--mint-deep)' : marginPct >= 10 ? 'var(--amber-deep)' : 'var(--alert-2)'}">${marginPct}<span class="unit">%</span></div><div class="kpi-sub">${fE(totRev - totCost)} su ${fE(totRev)}</div></div>`
+    + '</div><div class="grid-2">';
 
   const convEntries = Object.entries(convByProd).map(([p, days]) => [p, Math.round(days.reduce((a, b) => a + b, 0) / days.length), days.length]).sort((a, b) => a[1] - b[1]);
   const convMax = convEntries.length > 0 ? Math.max(...convEntries.map((e) => e[1]), 1) : 1;
 
-  h += '<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px"><div class="prod-section-title">Tempo conversione per prodotto</div>';
+  h += '<div class="section" style="margin-bottom:0"><div class="section-title"><span class="tt-left">Tempo conversione per prodotto</span><span class="tt-right">media gg</span></div>';
   if (convEntries.length > 0) {
     convEntries.forEach(([p, avg]) => {
-      const col = avg <= 14 ? 'var(--green)' : avg <= 30 ? 'var(--amber)' : 'var(--red)';
-      h += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px"><span style="font-family:var(--mono);font-size:12px;font-weight:600;min-width:50px">${p}</span><div style="flex:1;height:8px;background:var(--border-l);border-radius:4px"><div style="height:100%;width:${Math.round((avg / convMax) * 100)}%;background:${col};border-radius:4px"></div></div><span style="font-family:var(--mono);font-size:12px;font-weight:700;min-width:40px;text-align:right">${avg}gg</span></div>`;
+      const col = avg <= 14 ? 'var(--mint-deep)' : avg <= 30 ? 'var(--amber-deep)' : 'var(--alert-2)';
+      h += `<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><span style="font-family:var(--mono);font-size:11.5px;font-weight:700;min-width:60px;color:var(--ink-2)">${p}</span><div style="flex:1;height:10px;background:var(--bg-2);border-radius:999px;overflow:hidden"><div style="height:100%;width:${Math.round((avg / convMax) * 100)}%;background:${col};border-radius:999px"></div></div><span style="font-family:var(--mono);font-size:11.5px;font-weight:800;min-width:48px;text-align:right;color:${col}">${avg}gg</span></div>`;
     });
   } else {
-    h += '<div style="font-size:13px;color:var(--text3)">Nessun deal Closed Won</div>';
+    h += '<div style="font-size:13px;color:var(--ink-3)">Nessun deal Closed Won</div>';
   }
   h += '</div>';
 
-  h += `<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px"><div class="prod-section-title">Aging deal aperti</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px"><div style="text-align:center;padding:12px;background:var(--bg);border-radius:var(--radius-sm)"><div style="font-family:var(--mono);font-size:24px;font-weight:700;color:var(--green)">${ag.u7}</div><div style="font-size:11px;color:var(--text3)">0-7 gg</div></div><div style="text-align:center;padding:12px;background:var(--bg);border-radius:var(--radius-sm)"><div style="font-family:var(--mono);font-size:24px;font-weight:700;color:var(--amber)">${ag.d7}</div><div style="font-size:11px;color:var(--text3)">8-14 gg</div></div><div style="text-align:center;padding:12px;background:var(--bg);border-radius:var(--radius-sm)"><div style="font-family:var(--mono);font-size:24px;font-weight:700;color:var(--amber)">${ag.d14}</div><div style="font-size:11px;color:var(--text3)">15-30 gg</div></div><div style="text-align:center;padding:12px;background:var(--bg);border-radius:var(--radius-sm)"><div style="font-family:var(--mono);font-size:24px;font-weight:700;color:var(--red)">${ag.o30}</div><div style="font-size:11px;color:var(--text3)">&gt;30 gg</div></div></div>`;
+  h += `<div class="section" style="margin-bottom:0"><div class="section-title"><span class="tt-left">Aging deal aperti</span></div>`;
+  h += `<div class="aging-grid">`
+    + `<div class="aging-cell"><div class="n" style="color:var(--mint-deep)">${ag.u7}</div><div class="l">0-7 gg</div></div>`
+    + `<div class="aging-cell"><div class="n" style="color:var(--amber-deep)">${ag.d7}</div><div class="l">8-14 gg</div></div>`
+    + `<div class="aging-cell warn"><div class="n">${ag.d14}</div><div class="l">15-30 gg</div></div>`
+    + `<div class="aging-cell bad"><div class="n">${ag.o30}</div><div class="l">&gt;30 gg</div></div>`
+    + `</div>`;
   if (staleDeals.length > 0) {
-    h += '<div style="font-size:12px;font-weight:700;color:var(--text3);margin-bottom:6px">DEAL FERMI &gt;14 GIORNI</div>';
+    h += '<div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-3);margin:16px 0 8px">Deal fermi &gt;14 giorni</div>';
     staleDeals.slice(0, 10).forEach((d) => {
-      h += `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px"><span style="font-family:var(--mono);font-weight:700;min-width:36px;text-align:right;color:${d.days > 30 ? 'var(--red)' : 'var(--amber)'}">${d.days}gg</span><span class="stage-badge" style="background:${SC[d.stage] || '#9ca3af'};font-size:10px">${d.stage}</span><span style="flex:1;color:var(--text2)">${d.name}</span></div>`;
+      h += `<div class="stale-item"><span class="days">${d.days}gg</span><span class="stage-badge" style="background:${SC[d.stage] || 'var(--ink-4)'}">${d.stage}</span><span class="nm">${d.name}</span></div>`;
     });
   }
   h += '</div>';
 
-  h += '<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px"><div class="prod-section-title">Motivi di perdita deal</div>';
+  h += '</div><div class="grid-2" style="margin-top:14px">';
+
+  h += `<div class="section" style="margin-bottom:0"><div class="section-title"><span class="tt-left">Motivi di perdita deal</span><span class="tt-right">${lostDeals.length} lost</span></div>`;
   if (lrSorted.length > 0) {
     lrSorted.forEach(([r, c]) => {
-      h += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px"><span style="font-size:12px;min-width:120px;color:var(--text2)">${r}</span><div style="flex:1;height:8px;background:var(--border-l);border-radius:4px"><div style="height:100%;width:${Math.round((c / lrMax) * 100)}%;background:var(--red);border-radius:4px"></div></div><span style="font-family:var(--mono);font-size:12px;font-weight:700;min-width:24px;text-align:right">${c}</span></div>`;
+      h += `<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><span style="font-size:11.5px;min-width:140px;color:var(--ink-2);font-weight:600">${r}</span><div style="flex:1;height:10px;background:var(--bg-2);border-radius:999px;overflow:hidden"><div style="height:100%;width:${Math.round((c / lrMax) * 100)}%;background:var(--alert);border-radius:999px"></div></div><span style="font-family:var(--mono);font-size:11.5px;font-weight:800;min-width:28px;text-align:right;color:var(--alert-2)">${c}</span></div>`;
     });
   } else {
-    h += '<div style="font-size:13px;color:var(--text3)">Nessun dato lost reason</div>';
+    h += '<div style="font-size:13px;color:var(--ink-3)">Nessun dato lost reason</div>';
   }
   h += '</div>';
 
-  h += `<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px"><div class="prod-section-title">No Show per corso</div><div style="font-size:13px;color:var(--text2);margin-bottom:10px">${noShowDeals.length} no show totali</div>`;
+  h += `<div class="section" style="margin-bottom:0"><div class="section-title"><span class="tt-left">No Show per corso</span><span class="tt-right">${noShowDeals.length} totali</span></div>`;
   if (nsSorted.length > 0) {
     nsSorted.forEach(([k, c]) => {
-      h += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px"><span style="font-family:var(--mono);font-size:12px;font-weight:600;min-width:80px">${k}</span><div style="flex:1;height:8px;background:var(--border-l);border-radius:4px"><div style="height:100%;width:${Math.round((c / nsMax) * 100)}%;background:var(--amber);border-radius:4px"></div></div><span style="font-family:var(--mono);font-size:12px;font-weight:700;min-width:24px;text-align:right">${c}</span></div>`;
+      h += `<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><span style="font-family:var(--mono);font-size:11.5px;font-weight:700;min-width:90px;color:var(--ink-2)">${k}</span><div style="flex:1;height:10px;background:var(--bg-2);border-radius:999px;overflow:hidden"><div style="height:100%;width:${Math.round((c / nsMax) * 100)}%;background:var(--amber-2);border-radius:999px"></div></div><span style="font-family:var(--mono);font-size:11.5px;font-weight:800;min-width:28px;text-align:right;color:var(--amber-deep)">${c}</span></div>`;
     });
   } else {
-    h += '<div style="font-size:13px;color:var(--text3)">Nessun No Show</div>';
+    h += '<div style="font-size:13px;color:var(--ink-3)">Nessun No Show</div>';
   }
   h += '</div></div>';
 
@@ -188,5 +197,12 @@ export function renderInsights(corsi) {
     h += `<tr class="row-tot"><td colspan="2">TOTALE</td><td class="num" style="color:var(--green)">${fE(gR)}</td><td class="num">${fE(gD)}</td><td class="num ${colDel(gDP)}">${gDP}%</td><td class="num">${fE(gM)}</td><td class="num">—</td><td class="num ${colM(gN)}">${fE(gN)}</td><td class="num ${colM(gN)}">${gNP}%</td></tr>`;
     h += '</tbody></table></div>';
   }
+
+  // Performance estreme — top 3 vs bottom 3
+  h += `<div class="section" style="margin-top:14px"><div class="section-title"><span class="tt-left">Performance estreme</span><span class="tt-right">top vs bottom per % target</span></div><div class="chart-wrap h-300"><canvas id="chartPerf"></canvas></div></div>`;
+
   ct.innerHTML = h;
+
+  // Disegna chart Chart.js
+  drawPerfChart('chartPerf', corsi);
 }

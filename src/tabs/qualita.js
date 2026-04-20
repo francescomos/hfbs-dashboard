@@ -3,6 +3,9 @@ import { fD } from '../utils/format.js';
 import { $, escapeAttr } from '../utils/dom.js';
 import { buildCorsi } from '../data/buildCorsi.js';
 
+const scoreColor = (v) => (v >= 4.5 ? 'var(--mint-deep)' : v >= 4 ? 'var(--mint-2)' : v >= 3.5 ? 'var(--amber-deep)' : 'var(--alert-2)');
+const stars = (v) => '★★★★★'.substring(0, Math.round(v)) + '☆☆☆☆☆'.substring(0, 5 - Math.round(v));
+
 export function renderQualita() {
   const DL = state.DL;
   if (!DL) return;
@@ -26,8 +29,6 @@ export function renderQualita() {
     return;
   }
 
-  const sc = (v) => (v >= 4.5 ? 'var(--green)' : v >= 3.5 ? 'var(--amber)' : 'var(--red)');
-  const fv = (v) => (v > 0 ? v.toFixed(1) : '—');
   const avg = (arr, key) => {
     const v = arr.filter((f) => (parseFloat(f[key]) || 0) > 0);
     return v.length ? v.reduce((s, f) => s + (parseFloat(f[key]) || 0), 0) / v.length : 0;
@@ -54,39 +55,64 @@ export function renderQualita() {
   const aD = avg(ws, 'docenti');
   const aL = avg(ws, 'logistica');
 
-  let h = '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px">';
-  for (const [lbl, val] of [['Media', aM], ['Organizzazione', aO], ['Contenuti', aC], ['Docenti', aD], ['Logistica', aL]]) {
-    h += `<div style="text-align:center;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px"><div style="font-family:var(--mono);font-size:36px;font-weight:700;color:${sc(val)}">${fv(val)}</div><div style="font-size:12px;color:var(--text3);font-weight:600;text-transform:uppercase;margin-top:4px">${lbl}</div></div>`;
-  }
-  h += '</div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">';
+  const fv = (v) => (v > 0 ? v.toFixed(1) : '—');
 
+  let h = '<div class="q-kpi-row">';
+  for (const [lbl, val] of [['Media', aM], ['Organizzazione', aO], ['Contenuti', aC], ['Docenti', aD], ['Logistica', aL]]) {
+    const col = scoreColor(val);
+    h += `<div class="q-kpi"><div class="v" style="color:${col}">${fv(val)}</div>`
+      + `<div class="stars" style="color:${col}">${val > 0 ? stars(val) : ''}</div>`
+      + `<div class="l">${lbl}</div></div>`;
+  }
+  h += '</div>';
+
+  h += '<div class="q-grid">';
   for (const [courseName, modules] of Object.entries(byCourse).sort((a, b) => avg(b[1], 'media') - avg(a[1], 'media'))) {
     const cAvg = avg(modules, 'media');
+    const cO = avg(modules, 'organizzazione');
     const cC = avg(modules, 'contenuti');
     const cD2 = avg(modules, 'docenti');
     const cL = avg(modules, 'logistica');
-    const col = sc(cAvg);
+    const col = scoreColor(cAvg);
     const totR = modules.reduce((s, f) => s + (parseFloat(f.numRisposte) || 0), 0);
     const isExp = state.qaExpanded === courseName;
     const dispN = courseName.charAt(0).toUpperCase() + courseName.slice(1);
-    const bar = (lbl, val) => (val > 0
-      ? `<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px"><span style="font-size:12px;min-width:90px;color:var(--text2)">${lbl}</span><div style="flex:1;height:5px;background:var(--border-l);border-radius:3px"><div style="height:100%;width:${(val / 5) * 100}%;background:${sc(val)};border-radius:3px"></div></div><span style="font-family:var(--mono);font-size:12px;font-weight:600;color:${sc(val)}">${val.toFixed(1)}</span></div>`
-      : '');
+    const acc = cAvg >= 4.5 ? 'mint' : cAvg >= 4 ? 'brand' : cAvg >= 3.5 ? 'peach' : 'alert';
 
-    h += `<div class="qa-card" data-course="${escapeAttr(courseName)}" style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);border-top:3px solid ${col};cursor:pointer">`;
-    h += `<div style="padding:16px"><div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:6px"><div style="font-size:14px;font-weight:700">${dispN}</div><div style="font-family:var(--mono);font-size:24px;font-weight:700;color:${col}">${cAvg.toFixed(1)}</div></div><div style="font-size:12px;color:var(--text3);margin-bottom:8px">${modules.length} moduli  |  ${totR} risposte</div>${bar('Contenuti', cC)}${bar('Docenti', cD2)}${bar('Logistica', cL)}<div style="text-align:center;font-size:11px;color:var(--text3);margin-top:8px">${isExp ? '▲ Chiudi' : '▼ Espandi moduli'}</div></div>`;
+    const bar = (lbl, val) => val > 0
+      ? `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:11px;min-width:95px;color:var(--ink-2);font-weight:600">${lbl}</span><div style="flex:1;height:6px;background:var(--bg-2);border-radius:999px;overflow:hidden"><div style="height:100%;width:${(val / 5) * 100}%;background:${scoreColor(val)};border-radius:999px"></div></div><span style="font-family:var(--mono);font-size:11px;font-weight:800;color:${scoreColor(val)};min-width:30px;text-align:right">${val.toFixed(1)}</span></div>`
+      : '';
+
+    h += `<div class="q-card" data-course="${escapeAttr(courseName)}" data-acc="${acc}">`;
+    h += `<div class="q-card-head" style="padding:20px 22px">`;
+    h += `<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px"><div style="font-weight:800;font-size:15px;line-height:1.2;max-width:170px">${dispN}</div><div style="font-weight:800;font-size:30px;line-height:1;letter-spacing:-.025em;color:${col}">${cAvg.toFixed(1)}</div></div>`;
+    h += `<div style="font-size:10.5px;color:var(--ink-3);font-family:var(--mono);margin-bottom:14px;letter-spacing:.02em">${modules.length} moduli · ${totR} risposte · <span style="color:${col}">${stars(cAvg)}</span></div>`;
+    h += bar('Organizzazione', cO);
+    h += bar('Contenuti', cC);
+    h += bar('Docenti', cD2);
+    h += bar('Logistica', cL);
+    h += `<div style="text-align:center;font-size:10px;color:var(--ink-4);margin-top:12px;text-transform:uppercase;letter-spacing:.1em;font-weight:700">${isExp ? '▲ chiudi' : '▼ dettaglio edizioni'}</div>`;
+    h += `</div>`;
 
     if (isExp) {
-      h += '<div style="border-top:1px solid var(--border);padding:12px 16px;background:var(--bg)">';
+      h += `<div style="border-top:1px solid var(--line-l);padding:16px 20px;background:var(--bg-3)">`;
       for (const f of modules.sort((a, b) => (parseFloat(b.media) || 0) - (parseFloat(a.media) || 0))) {
         const m = parseFloat(f.media) || 0;
-        const mcol = sc(m);
+        const mcol = scoreColor(m);
         const cleanC = (t) => (!t || t.includes('do not have enough') || t.length < 5) ? '' : t;
         const posC = cleanC(f.aspettiPositivi || '');
         const negC = cleanC(f.areeMiglioramento || '');
-        h += `<div style="background:var(--card);border:1px solid var(--border-l);border-radius:var(--radius-sm);padding:12px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><span style="font-size:13px;font-weight:600">${f.prodotto || f.nome}</span><span style="font-family:var(--mono);font-size:18px;font-weight:700;color:${mcol}">${m.toFixed(1)}</span></div><div style="font-size:11px;color:var(--text3);margin-bottom:6px">${fD(f.dataEvento || '')}  |  ${f.numRisposte || 0} risposte</div>${bar('Contenuti', parseFloat(f.contenuti) || 0)}${bar('Docenti', parseFloat(f.docenti) || 0)}${bar('Logistica', parseFloat(f.logistica) || 0)}${posC ? `<div style="margin-top:6px;padding:6px 8px;background:var(--bg);border-radius:var(--radius-sm);font-size:12px"><b style="color:var(--green);font-size:10px">✓ FORZA</b><br>${posC.substring(0, 250)}</div>` : ''}${negC ? `<div style="margin-top:4px;padding:6px 8px;background:var(--bg);border-radius:var(--radius-sm);font-size:12px"><b style="color:var(--amber);font-size:10px">△ MIGL.</b><br>${negC.substring(0, 250)}</div>` : ''}</div>`;
+        h += `<div style="background:var(--card);border:1px solid var(--line-l);border-radius:var(--r);padding:14px;margin-bottom:10px">`;
+        h += `<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px"><span style="font-weight:700">${f.prodotto || f.nome}</span><span style="font-size:22px;font-weight:800;color:${mcol}">${m.toFixed(1)}</span></div>`;
+        h += `<div style="font-size:10.5px;color:var(--ink-3);font-family:var(--mono);margin-bottom:10px">${fD(f.dataEvento || '')} · ${f.numRisposte || 0} risposte</div>`;
+        h += bar('Contenuti', parseFloat(f.contenuti) || 0);
+        h += bar('Docenti', parseFloat(f.docenti) || 0);
+        h += bar('Logistica', parseFloat(f.logistica) || 0);
+        if (posC) h += `<div style="margin-top:6px;padding:8px 10px;background:var(--mint-ll);border-radius:var(--r-sm);font-size:12px;color:var(--ink-2);line-height:1.5"><b style="color:var(--mint-deep);font-size:10px;letter-spacing:.1em;text-transform:uppercase">✓ Forza</b><br>${posC.substring(0, 250)}</div>`;
+        if (negC) h += `<div style="margin-top:4px;padding:8px 10px;background:var(--amber-l);border-radius:var(--r-sm);font-size:12px;color:var(--ink-2);line-height:1.5"><b style="color:var(--amber-deep);font-size:10px;letter-spacing:.1em;text-transform:uppercase">△ Miglioramento</b><br>${negC.substring(0, 250)}</div>`;
+        h += `</div>`;
       }
-      h += '</div>';
+      h += `</div>`;
     }
     h += '</div>';
   }
@@ -98,7 +124,7 @@ export function attachQualitaHandlers() {
   const ct = $('qualita-content');
   if (!ct) return;
   ct.addEventListener('click', (e) => {
-    const card = e.target.closest('.qa-card[data-course]');
+    const card = e.target.closest('.q-card[data-course]');
     if (!card) return;
     const name = card.dataset.course;
     state.qaExpanded = state.qaExpanded === name ? null : name;

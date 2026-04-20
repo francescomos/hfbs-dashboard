@@ -21,6 +21,24 @@ function renderAll() {
   renderInsights(c);
   renderQualita();
   renderMonitor();
+  updateHeaderSub(c);
+}
+
+function updateHeaderSub(corsi) {
+  const el = $('header-sub');
+  if (!el || !corsi) return;
+  const ed = corsi.length;
+  const prods = new Set(corsi.map((c) => c.nome)).size;
+  const meta = (state.DL && state.DL._metadata) ? state.DL._metadata.length : 0;
+  el.textContent = `${ed} edizioni · ${prods} prodotti${meta ? ' · ' + meta + ' fonti integrate' : ''}`;
+}
+
+function updateTodayChip() {
+  const el = $('today-chip');
+  if (!el) return;
+  el.textContent = new Date().toLocaleDateString('it-IT', {
+    weekday: 'short', day: '2-digit', month: 'short', year: 'numeric',
+  });
 }
 
 function switchTab(name, el) {
@@ -66,7 +84,6 @@ function initTabs() {
 function initSetup() {
   const saved = localStorage.getItem(STORAGE_KEY);
   const input = $('url-input');
-  // Show default URL in the input but keep setup hidden if we have a working default
   input.value = saved || DEFAULT_DATALAKE_URL;
   $('setup').classList.add('hidden');
   $('btn-save-url').addEventListener('click', saveUrl);
@@ -79,6 +96,7 @@ function initSetup() {
 document.addEventListener('DOMContentLoaded', () => {
   initTabs();
   initSetup();
+  updateTodayChip();
   attachPanoramicaHandlers();
   attachProdottoHandlers();
   attachQualitaHandlers();

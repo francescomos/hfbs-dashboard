@@ -5,6 +5,8 @@ import { dTS, cSt, bC } from '../utils/normalize.js';
 import { $ } from '../utils/dom.js';
 import { buildCorsi } from '../data/buildCorsi.js';
 import { getRealSpend, getActiveCampaignCount } from '../data/helpers.js';
+import { buildSuggestions, suggestCardHTML } from '../data/insights.js';
+import { drawRevenueTrend, drawIntakeDonut } from '../charts/chartjs.js';
 
 export function renderFilters(corsi) {
   const ii = [...new Set(corsi.map((x) => x.edizione).filter(Boolean))];
@@ -13,14 +15,17 @@ export function renderFilters(corsi) {
     const ib = INTAKE_ORDER_PANORAMICA.indexOf(b);
     return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
   });
+  const counts = {};
+  corsi.forEach((c) => { counts[c.edizione] = (counts[c.edizione] || 0) + 1; });
   $('filters').innerHTML =
-    '<div class="filter-pill active" data-filter="all">Tutti</div>'
-    + ii.map((i) => `<div class="filter-pill" data-filter="${i}">${IF[IS[i]] || i}</div>`).join('');
+    `<span class="filter-label">Intake</span>`
+    + `<button class="chip active" data-filter="all">Tutti <span class="cnt">${corsi.length}</span></button>`
+    + ii.map((i) => `<button class="chip" data-filter="${i}">${IF[IS[i]] || i} <span class="cnt">${counts[i] || 0}</span></button>`).join('');
 }
 
 export function setFilter(filter, el) {
   state.filter = filter;
-  document.querySelectorAll('.filter-pill').forEach((p) => p.classList.remove('active'));
+  document.querySelectorAll('#filters .chip, #filters .filter-pill').forEach((p) => p.classList.remove('active'));
   if (el) el.classList.add('active');
   renderPanoramica(buildCorsi());
 }
@@ -49,16 +54,50 @@ export function renderPanoramica(corsi) {
   const realMktgCost = getRealSpend();
   const zr = v.filter((c) => c.pctTarget < 70 && dTS(c) > 0 && dTS(c) <= 45);
 
-  $('kpi-row').innerHTML =
-    `<div class="kpi" data-sort="iscritti"><div class="kpi-label">Iscritti (O&A)</div><div class="kpi-value" style="color:var(--green)">${ti}</div><div class="kpi-sub">Target: ${tt} — ${pt}%</div></div>`
-    + `<div class="kpi" data-sort="revenue"><div class="kpi-label">Revenue (O&A)</div><div class="kpi-value">${fE(tr)}</div><div class="kpi-sub">${fEk(trt)} tgt — ${rp}%</div></div>`
-    + `<div class="kpi" data-sort="candidature"><div class="kpi-label">Candidature (GF+BR)</div><div class="kpi-value">${tgf + tbr}</div><div class="kpi-sub">Form: ${tgf} — Brevo: ${tbr}</div></div>`
-    + `<div class="kpi" data-sort="colloqui"><div class="kpi-label">Colloqui (Calendly)</div><div class="kpi-value" style="color:var(--purple)">${tc}</div><div class="kpi-sub">Passati: ${tcp} — Futuri: ${tcf}</div></div>`
-    + `<div class="kpi" data-sort="mktg"><div class="kpi-label">Speso Marketing</div><div class="kpi-value">${fEk(realMktgCost)}</div><div class="kpi-sub">Meta+GAds campaigns</div></div>`
-    + `<div class="kpi" data-sort="zonarossa"><div class="kpi-label">Zona rossa</div><div class="kpi-value" style="color:${zr.length > 0 ? 'var(--red)' : 'var(--green)'}">${zr.length}</div><div class="kpi-sub">&lt;45gg e &lt;70% target</div></div>`;
+  const kpis = [
+    { k: 'iscritti', hero: 'hero-brand', lbl: 'Iscritti (O&A)', val: ti.toLocaleString('it-IT'), sub: `target ${tt} · ${pt}%`, tip: 'Iscritti ufficiali O&A (somma aggregata del file O&A).' },
+    { k: 'revenue', hero: 'hero-mint', lbl: 'Revenue (O&A)', val: fEk(tr), sub: `${fEk(trt)} tgt · ${rp}%`, tip: 'Incasso reale aggregato (O&A Summary).' },
+    { k: 'candidature', lbl: 'Candidature', val: (tgf + tbr).toLocaleString('it-IT'), sub: `${tgf} form · ${tbr} Brevo`, tip: 'Gravity Forms (candidatura) + deal Brevo totali.' },
+    { k: 'colloqui', lbl: 'Colloqui', val: tc.toLocaleString('it-IT'), sub: `${tcp} fatti · ${tcf} futuri`, tip: 'Eventi Calendly totali. Include no-show e cancellati.' },
+    { k: 'mktg', lbl: 'Speso Marketing', val: fEk(realMktgCost), sub: 'Meta+GAds campaigns', tip: 'Spend reale aggregato da Meta_Campaigns + GAds_Campaigns.' },
+    { k: 'zonarossa', lbl: 'Zona rossa', val: zr.length, sub: zr.length > 0 ? 'richiedono azione' : 'nessuna', tip: 'Corsi <45gg al via e <70% target. Azione urgente.' },
+  ];
 
-  // Reflect active-sort
+  $('kpi-row').innerHTML = kpis.map((k) => {
+    const hero = k.hero || '';
+    return `<div class="kpi ${hero}" data-sort="${k.k}" data-tip="${k.tip}">`
+      + `<div class="kpi-label">${k.lbl}<span class="info">i</span></div>`
+      + `<div class="kpi-value">${k.val}</div>`
+      + `<div class="kpi-sub">${k.sub}</div>`
+      + '</div>';
+  }).join('');
+
   document.querySelectorAll('.kpi').forEach((x) => x.classList.toggle('active-sort', x.dataset.sort === state.sortBy));
+
+  // Suggerimenti automatici
+  const suggestions = buildSuggestions();
+  const sugWrap = $('suggestions-wrap');
+  if (sugWrap) {
+    let sugHtml = '';
+    if (suggestions.length > 0) {
+      sugHtml += `<div class="section"><div class="section-title"><span class="tt-left">Suggerimenti automatici</span><span class="tt-right">generati sui dati correnti</span></div>${suggestions.map(suggestCardHTML).join('')}</div>`;
+    }
+    // Chart grid: revenue trend + donut intake
+    const intakesForDonut = [...new Set(v.map((c) => c.intake).filter(Boolean))];
+    if (v.length > 0) {
+      sugHtml += `<div class="grid-2-1" style="margin-bottom:14px">`
+        + `<div class="section" style="margin-bottom:0"><div class="section-title"><span class="tt-left">Revenue cumulata · anno in corso</span><span class="tt-right">${new Date().toLocaleDateString('it-IT', { day: '2-digit', month: 'short' })}</span></div><div class="chart-wrap h-260"><canvas id="chartTrend"></canvas></div></div>`
+        + `<div class="section" style="margin-bottom:0"><div class="section-title"><span class="tt-left">Iscritti per intake</span><span class="tt-right">${ti} totali</span></div><div class="chart-wrap h-260"><canvas id="chartIntake"></canvas></div></div>`
+        + `</div>`;
+    }
+    sugWrap.innerHTML = sugHtml;
+
+    // Disegna chart dopo inject del canvas
+    if (v.length > 0 && state.DL) {
+      drawRevenueTrend('chartTrend', v, state.DL);
+      drawIntakeDonut('chartIntake', v, intakesForDonut);
+    }
+  }
 
   let sorted = [...v];
   if (state.sortBy === 'iscritti') sorted.sort((a, b) => b.iscrittiOA - a.iscrittiOA);
@@ -92,16 +131,16 @@ export function renderPanoramica(corsi) {
     const bePct = c.target > 0 && beStudents > 0 ? Math.round((beStudents / c.target) * 100) : -1;
 
     const fs = [
-      { l: 'Candidature', v: c.gfCount + c.brevoDeals.length, c: 'var(--blue)' },
-      { l: 'Colloqui', v: c.calAll, c: 'var(--purple)' },
-      { l: 'Won', v: c.brevoWon, c: 'var(--hfarm)' },
-      { l: 'Iscritti', v: c.iscrittiOA, c: 'var(--green)' },
+      { l: 'Candidature', v: c.gfCount + c.brevoDeals.length, c: 'var(--sky-2)' },
+      { l: 'Colloqui', v: c.calAll, c: 'var(--brand)' },
+      { l: 'Won', v: c.brevoWon, c: 'var(--mint-2)' },
+      { l: 'Iscritti', v: c.iscrittiOA, c: 'var(--ink)' },
     ];
     const fm = Math.max(...fs.map((s) => s.v), 1);
     const hasFunnel = fs.some((s) => s.v > 0);
 
     const rl = c.revenueOA > 0 || c.revTarget > 0
-      ? `<div class="rev-line"><b>${fE(c.revenueOA)}</b> / ${fEk(c.revTarget)}${c.revTarget > 0 ? ' — ' + Math.round((c.revenueOA / c.revTarget) * 100) + '%' : ''}</div>`
+      ? `<div class="rev-line">Revenue: <b>${fE(c.revenueOA)}</b> / ${fEk(c.revTarget)}${c.revTarget > 0 ? ' — ' + Math.round((c.revenueOA / c.revTarget) * 100) + '%' : ''}</div>`
       : '';
 
     const stInfo = cSt(c);
@@ -109,22 +148,22 @@ export function renderPanoramica(corsi) {
     const stC = stInfo === 'selling' ? 'ed-status-selling' : stInfo === 'active' ? 'ed-status-active' : 'ed-status-done';
 
     const ac = getActiveCampaignCount(c.prod);
-    const campBadge = ac > 0 ? `<span class="corso-tag" style="background:#dbeafe;color:#1d4ed8">${ac} mktg</span>` : '';
+    const campBadge = ac > 0 ? `<span class="corso-tag" style="background:var(--sky-l);color:var(--sky-deep)">${ac} mktg</span>` : '';
     const dataBadge = dOk ? '<span class="corso-tag tag-ok">Dati OK</span>' : '<span class="corso-tag tag-warn">Dati mancanti</span>';
 
     return `<div class="corso-card ${isZR ? 'zona-rossa' : ''}" style="border-left-color:${color}">`
       + `<div class="corso-name">${c.nome}</div>`
-      + (isZR ? `<div class="corso-zr">⚑ ZONA ROSSA — ${days}gg al via - ${c.pctTarget}% target</div>` : '')
+      + (isZR ? `<div class="corso-zr">⚑ ZONA ROSSA — ${days}gg al via · ${c.pctTarget}% target</div>` : '')
       + `<div class="corso-meta"><span class="corso-tag tag-intake">${il}</span><span class="corso-tag tag-tipo">${c.tipo || ''}</span><span class="corso-tag ${stC}">${stL}</span>${campBadge}${dataBadge}</div>`
-      + `<div class="corso-date">${sd ? sd + ' — ' : ''}${days > 0 ? `<b>${days}gg al via</b>` : days === 0 ? '<b>Oggi</b>' : '<b>In corso</b>'}${c.pricing > 0 ? `  |  <span style="font-family:var(--mono);font-weight:600">${fE(c.pricing)}/persona</span>` : ''}</div>`
-      + `<div class="prog"><div class="prog-top"><span class="prog-label">Iscritti (O&A)</span><div class="prog-nums"><span class="prog-iscritti" style="color:${color}">${c.iscrittiOA}</span><span class="prog-target">/ ${c.target}</span><span class="prog-pct" style="color:${color}">${c.pctTarget}%</span></div></div>`
+      + `<div class="corso-date">${sd ? sd + ' — ' : ''}${days > 0 ? `<b>${days}gg al via</b>` : days === 0 ? '<b>Oggi</b>' : '<b>In corso</b>'}${c.pricing > 0 ? `  |  <span style="font-family:var(--mono);font-weight:700;color:var(--ink)">${fE(c.pricing)}/persona</span>` : ''}</div>`
+      + `<div class="prog"><div class="prog-top"><span class="prog-label">Iscritti (O&A)</span><div class="prog-nums"><span class="prog-iscritti" style="color:${color}">${c.iscrittiOA}</span><span class="prog-target">/ ${c.target}</span><span class="prog-pct" style="background:${color}">${c.pctTarget}%</span></div></div>`
       + `<div class="prog-bar"><div class="prog-fill" style="width:${Math.min(c.pctTarget, 100)}%;background:${color}"></div>${bePct > 0 && bePct <= 100 ? `<div class="prog-marker" style="left:${bePct}%" title="Breakeven: ${beStudents} studenti"></div>` : ''}</div></div>`
       + rl
       + (hasFunnel ? '<div class="funnel" style="height:48px;margin:8px 0 4px">'
         + fs.map((s, i) => {
           const h = Math.max(3, Math.round((s.v / fm) * 36));
           const p = i > 0 && fs[i - 1].v > 0 ? Math.round((s.v / fs[i - 1].v) * 100) + '%' : '';
-          return `<div class="funnel-step"><div class="funnel-bar" style="height:${h}px;background:${s.c}"></div><div class="funnel-info"><span class="funnel-num" style="font-size:13px">${s.v}${p ? ' — ' + p : ''}</span></div><div class="funnel-lbl" style="font-size:9px">${s.l}</div></div>`;
+          return `<div class="funnel-step"><div class="funnel-bar" style="height:${h}px;background:${s.c}"></div><div class="funnel-info"><span class="funnel-num" style="font-size:12px">${s.v}${p ? ' · ' + p : ''}</span></div><div class="funnel-lbl" style="font-size:9px">${s.l}</div></div>`;
         }).join('')
         + '</div>' : '')
       + '</div>';
@@ -135,7 +174,7 @@ export function attachPanoramicaHandlers() {
   const filtersEl = $('filters');
   if (filtersEl) {
     filtersEl.addEventListener('click', (e) => {
-      const pill = e.target.closest('.filter-pill');
+      const pill = e.target.closest('.chip, .filter-pill');
       if (!pill) return;
       setFilter(pill.dataset.filter, pill);
     });

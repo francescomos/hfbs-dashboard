@@ -1,7 +1,7 @@
 import { state } from '../state.js';
 import { IF, TL, SC } from '../constants.js';
-import { fE, fD, fDshort } from '../utils/format.js';
-import { cSt, bC } from '../utils/normalize.js';
+import { fE, fEk, fD, fDshort } from '../utils/format.js';
+import { cSt, bC, dTS } from '../utils/normalize.js';
 import { $, escapeAttr } from '../utils/dom.js';
 import { buildCorsi } from '../data/buildCorsi.js';
 import {
@@ -12,7 +12,15 @@ import {
   calcRitardo,
   calcOverlapDetail,
 } from '../data/helpers.js';
+import {
+  getLastEdition,
+  avgConversionDays,
+  dropoutPct,
+  noShowPct,
+  countAlumniReturning,
+} from '../data/insights.js';
 import { buildDailyChart } from '../charts/dailyChart.js';
+import { drawFunnelChart, drawChannelsDonut, drawRevPerEdition } from '../charts/chartjs.js';
 
 export function populateProdSelect() {
   const corsi = buildCorsi();
@@ -53,7 +61,33 @@ export function renderProdotto() {
   const totMktgProd = getSpendForProd(corsi[0].prod);
   const margineProd = tr > 0 ? Math.round(((tr - totCostiProd - totMktgProd) / tr) * 100) : 0;
 
-  let h = `<div class="prod-header"><div style="display:flex;align-items:center;gap:10px"><div class="prod-title">${nome}</div><span class="ed-status ${prodStC}">${prodStatus}</span></div><div class="prod-subtitle">${tipo}  |  ${corsi.length} edizion${corsi.length > 1 ? 'i' : 'e'}  |  ${ti} iscritti  |  ${fE(tr)} revenue  |  <span style="color:${margineProd >= 0 ? 'var(--green)' : 'var(--red)'}">${margineProd}% margine</span></div></div>`;
+  // Ultima edizione = max(startDate)
+  const lastEd = getLastEdition(corsi);
+  const leStatus = lastEd ? cSt(lastEd) : 'selling';
+  const leStatusL = leStatus === 'selling' ? 'IN VENDITA' : leStatus === 'active' ? 'IN CORSO' : 'CONCLUSA';
+  const leIsZR = lastEd && lastEd.pctTarget < 70 && dTS(lastEd) > 0 && dTS(lastEd) <= 45;
+  const leBadge = leIsZR ? 'ALLARME' : leStatusL;
+  const leBadgeBg = leIsZR ? 'rgba(239,68,68,.85)' : leStatus === 'selling' ? 'rgba(147,197,253,.3)' : leStatus === 'active' ? 'rgba(125,211,192,.3)' : 'rgba(255,255,255,.15)';
+  const leMargine = lastEd ? (lastEd.revenueOA - lastEd.costiTotali - (lastEd.mktgPaid || 0)) : 0;
+  const leMargPct = lastEd && lastEd.revenueOA > 0 ? Math.round((leMargine / lastEd.revenueOA) * 100) : 0;
+  const leCandidature = lastEd ? (lastEd.gfCount + lastEd.brevoDeals.length) : 0;
+
+  let h = '';
+
+  // HERO: sempre sull'ultima edizione
+  if (lastEd) {
+    h += `<div class="prod-hero">`
+      + `<h2>${nome}<span class="status-inline" style="background:${leBadgeBg}${leIsZR ? ';color:#fff' : ''}">${leBadge}</span></h2>`
+      + `<div class="sub">${tipo} · edizione ${IF[lastEd.intake] || lastEd.intake} · sigla ${lastEd.sig} · ${corsi.length} edizion${corsi.length > 1 ? 'i' : 'e'} totali</div>`
+      + `<div class="prod-hero-stats">`
+      + `<div class="prod-hero-stat"><div class="lbl">Iscritti</div><div class="val">${lastEd.iscrittiOA}<span class="unit">/ ${lastEd.target}</span></div><div class="sub">${lastEd.pctTarget}% del target</div></div>`
+      + `<div class="prod-hero-stat"><div class="lbl">Revenue</div><div class="val">${fEk(lastEd.revenueOA)}</div><div class="sub">${lastEd.revTarget > 0 ? Math.round(lastEd.revenueOA / lastEd.revTarget * 100) + '% di ' + fEk(lastEd.revTarget) : '—'}</div></div>`
+      + `<div class="prod-hero-stat"><div class="lbl">Margine netto</div><div class="val ${leMargine < 0 ? 'alert' : ''}">${fEk(leMargine)}</div><div class="sub">${leMargPct}% su revenue</div></div>`
+      + `<div class="prod-hero-stat"><div class="lbl">Candidature</div><div class="val">${leCandidature}</div><div class="sub">${lastEd.calAll} colloqui · ${lastEd.brevoWon} won</div></div>`
+      + `</div></div>`;
+  } else {
+    h += `<div class="prod-header"><div style="display:flex;align-items:center;gap:10px"><div class="prod-title">${nome}</div><span class="ed-status ${prodStC}">${prodStatus}</span></div><div class="prod-subtitle">${tipo}  |  ${corsi.length} edizion${corsi.length > 1 ? 'i' : 'e'}  |  ${ti} iscritti  |  ${fE(tr)} revenue  |  <span style="color:${margineProd >= 0 ? 'var(--mint-deep)' : 'var(--alert-2)'}">${margineProd}% margine</span></div></div>`;
+  }
 
   // Edizioni
   h += '<div class="prod-section"><div class="prod-section-title">Edizioni</div><div class="ed-row">';
@@ -101,8 +135,28 @@ export function renderProdotto() {
 
   const filteredCorsi = state.selectedEdition ? corsi.filter((c) => c.intake === state.selectedEdition) : corsi;
 
-  // Funnel
-  h += `<div class="prod-section"><div class="prod-section-title">Funnel di conversione${state.selectedEdition ? ' — ' + (IF[state.selectedEdition] || state.selectedEdition) : ''}</div>`;
+  // Funnel attesi vs reali (Chart.js, aggregato su filteredCorsi)
+  h += `<div class="section"><div class="section-title"><span class="tt-left">Funnel attesi vs reali</span><span class="tt-right">${state.selectedEdition ? (IF[state.selectedEdition] || state.selectedEdition) : 'tutte le edizioni'}</span></div><div class="chart-wrap h-340"><canvas id="chartFunnel"></canvas></div></div>`;
+
+  // Revenue per edizione + donut canali affiancati
+  const chKeys = ['b2b', 'b2c', 'jakala', 'referral', 'partner', 'free'];
+  const chTotObj = {};
+  chKeys.forEach((k) => { chTotObj[k.toUpperCase()] = filteredCorsi.reduce((s, c) => s + (c.channels?.[k]?.i || 0), 0); });
+  const chKeysUp = ['B2B', 'B2C', 'JAKALA', 'REFERRAL', 'PARTNER', 'FREE'];
+  const totChI = chKeysUp.reduce((s, k) => s + chTotObj[k], 0);
+  if (totChI > 0 || filteredCorsi.length > 1) {
+    h += `<div class="grid-2" style="margin-bottom:14px">`;
+    if (totChI > 0) {
+      h += `<div class="section" style="margin-bottom:0"><div class="section-title"><span class="tt-left">Canali di acquisizione</span><span class="tt-right">${totChI} iscritti</span></div><div class="chart-wrap h-260"><canvas id="chartChannels"></canvas></div></div>`;
+    }
+    if (filteredCorsi.length > 1) {
+      h += `<div class="section" style="margin-bottom:0"><div class="section-title"><span class="tt-left">Revenue per edizione</span><span class="tt-right">€ reali vs target</span></div><div class="chart-wrap h-260"><canvas id="chartRevEd"></canvas></div></div>`;
+    }
+    h += `</div>`;
+  }
+
+  // Funnel per edizione (legacy, dettaglio)
+  h += `<div class="prod-section"><div class="prod-section-title">Funnel per edizione${state.selectedEdition ? ' — ' + (IF[state.selectedEdition] || state.selectedEdition) : ''}</div>`;
   const mkFunnel = (steps, mx) =>
     '<div class="funnel" style="height:100px">'
     + steps.map((s, i) => {
@@ -320,34 +374,33 @@ export function renderProdotto() {
     h += `<div class="prod-section"><div style="display:flex;align-items:center;gap:12px"><div style="font-family:var(--mono);font-size:28px;font-weight:700;color:var(--blue)">${overlapData.total}</div><div><div style="font-size:14px;font-weight:600">Candidati in comune con ${overlapData.courses.map((c) => c.name + ' (' + c.count + ')').join('  |  ')}</div></div></div></div>`;
   }
 
-  // Analytics avanzate
-  h += '<div class="prod-section"><div class="prod-section-title">Analytics avanzate</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">';
+  // Analytics avanzate — 6 mini card
   const allDealsP = filteredCorsi.flatMap((c) => c.brevoDeals);
-  const wonDeals = allDealsP.filter((d) => d.stage === 'Closed Won');
-  if (wonDeals.length > 0) {
-    const avgD = wonDeals.reduce((sum, d) => {
-      const cr = new Date(d.createdAt), cl = new Date(d.modifiedAt || d.closeDate);
-      if (isNaN(cr) || isNaN(cl)) return sum;
-      return sum + Math.max(0, Math.floor((cl - cr) / 864e5));
-    }, 0) / wonDeals.length;
-    h += `<div style="background:var(--bg);padding:14px;border-radius:var(--radius-sm)"><div style="font-size:12px;color:var(--text3);font-weight:600">TEMPO CONVERSIONE</div><div style="font-family:var(--mono);font-size:25px;font-weight:700;color:var(--blue)">${Math.round(avgD)}<span style="font-size:14px;color:var(--text3)"> gg</span></div><div style="font-size:12px;color:var(--text2)">Da deal a Closed Won (${wonDeals.length})</div></div>`;
-  }
   const totOA = filteredCorsi.reduce((s, c) => s + c.iscrittiOA, 0);
   const totRevA = filteredCorsi.reduce((s, c) => s + c.revenueOA, 0);
+  const totCalA = filteredCorsi.reduce((s, c) => s + c.calAll, 0);
+  const totBrochureA = filteredCorsi.reduce((s, c) => s + c.brochureCount, 0);
+  const totCandA = filteredCorsi.reduce((s, c) => s + c.gfCount + c.brevoDeals.length, 0);
+
+  const convGg = avgConversionDays(allDealsP);
+  const dropP = dropoutPct(allDealsP);
+  const nsP = noShowPct(allDealsP, totCalA);
   const avgRPS = totOA > 0 ? Math.round(totRevA / totOA) : 0;
   const avgList = filteredCorsi.length > 0
     ? Math.round(filteredCorsi.reduce((s, c) => s + c.pricing, 0) / filteredCorsi.length)
     : 0;
-  h += `<div style="background:var(--bg);padding:14px;border-radius:var(--radius-sm)"><div style="font-size:12px;color:var(--text3);font-weight:600">REVENUE / STUDENTE</div><div style="font-family:var(--mono);font-size:25px;font-weight:700">${fE(avgRPS)}</div><div style="font-size:12px;color:var(--text2)">Listino medio: ${fE(avgList)}${avgList > 0 ? ' — sconto ' + Math.round((1 - avgRPS / avgList) * 100) + '%' : ''}</div></div>`;
-  if (allDealsP.length > 0) {
-    const stg = {};
-    allDealsP.forEach((d) => { stg[d.stage] = (stg[d.stage] || 0) + 1; });
-    const won2 = stg['Closed Won'] || 0;
-    const lost = stg['Closed Lost'] || 0;
-    const noshow = stg['No Show'] || 0;
-    const dropPct = allDealsP.length > 0 ? Math.round(((lost + noshow) / allDealsP.length) * 100) : 0;
-    h += `<div style="background:var(--bg);padding:14px;border-radius:var(--radius-sm)"><div style="font-size:12px;color:var(--text3);font-weight:600">DROPOUT PIPELINE</div><div style="font-family:var(--mono);font-size:25px;font-weight:700;color:${dropPct > 40 ? 'var(--red)' : 'var(--amber)'}">${dropPct}%</div><div style="font-size:12px;color:var(--text2)">Won ${won2}  |  Lost ${lost}  |  No Show ${noshow}</div></div>`;
-  }
+  const sconto = avgList > 0 ? Math.round((1 - avgRPS / avgList) * 100) : 0;
+  const broPct = totCandA > 0 && totBrochureA > 0 ? Math.round((totCandA / totBrochureA) * 100) : 0;
+  const alumni = countAlumniReturning(nome);
+  const alumniPct = totOA > 0 ? Math.round((alumni / totOA) * 100) : 0;
+
+  h += '<div class="prod-section"><div class="prod-section-title">Analytics avanzate</div><div class="mini-grid">';
+  h += `<div class="mini" data-tip="Giorni medi tra creazione deal Brevo e Closed Won."><div class="lbl">Tempo conversione</div><div class="val" style="color:var(--sky-deep)">${convGg}<span class="unit">gg</span></div><div class="sub">da lead a iscritto</div></div>`;
+  h += `<div class="mini" data-tip="Ticket medio effettivamente pagato."><div class="lbl">Revenue / studente</div><div class="val">${fEk(avgRPS)}</div><div class="sub">listino ${fEk(avgList)}${avgList > 0 ? ' · -' + sconto + '%' : ''}</div></div>`;
+  h += `<div class="mini" data-tip="Deal Brevo con stage 'No Show' / colloqui totali Calendly. >15% = alert."><div class="lbl">No-show colloqui</div><div class="val" style="color:${nsP > 15 ? 'var(--alert-2)' : 'var(--ink)'}">${nsP}<span class="unit">%</span></div><div class="sub">${totCalA} colloqui prenotati</div></div>`;
+  h += `<div class="mini" data-tip="Closed Lost / (Won + Lost). >40% = rivedere qualifica."><div class="lbl">Dropout pipeline</div><div class="val" style="color:${dropP > 40 ? 'var(--alert-2)' : 'var(--amber-deep)'}">${dropP}<span class="unit">%</span></div><div class="sub">${allDealsP.filter((d) => d.stage === 'Closed Won').length} won · ${allDealsP.filter((d) => d.stage === 'Closed Lost').length} lost</div></div>`;
+  h += `<div class="mini" data-tip="Candidature ricevute / brochure scaricate. Mostra quanto la brochure converte in lead."><div class="lbl">Brochure → Lead</div><div class="val">${broPct}<span class="unit">%</span></div><div class="sub">${totBrochureA} download</div></div>`;
+  h += `<div class="mini" data-tip="Studenti di OA_Studenti (questo prodotto) presenti in ≥2 corsi HFBS."><div class="lbl">Alumni returning</div><div class="val" style="color:var(--mint-deep)">${alumni}</div><div class="sub">${alumniPct}% su iscritti</div></div>`;
   h += '</div></div>';
 
   // Monitor fonti per edizione
@@ -367,6 +420,11 @@ export function renderProdotto() {
   h += '</div></div>';
 
   ct.innerHTML = h;
+
+  // Disegna chart dopo il render
+  drawFunnelChart('chartFunnel', filteredCorsi);
+  if (totChI > 0) drawChannelsDonut('chartChannels', chKeysUp, chTotObj);
+  if (filteredCorsi.length > 1) drawRevPerEdition('chartRevEd', filteredCorsi);
 }
 
 export function attachProdottoHandlers() {
