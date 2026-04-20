@@ -22,6 +22,13 @@ function renderAll() {
   renderQualita();
   renderMonitor();
   updateHeaderSub(c);
+  // Re-render anche il tab attivo se non è Panoramica (altrimenti click Aggiorna sembra non fare nulla)
+  const activeTab = document.querySelector('.tab.active');
+  const name = activeTab ? activeTab.dataset.tab : '';
+  if (name === 'prodotto') { populateProdSelect(); renderProdotto(); }
+  else if (name === 'pl') renderPL();
+  else if (name === 'plop') renderPLOP();
+  else if (name === 'marketing') renderMarketing();
 }
 
 function updateHeaderSub(corsi) {
@@ -54,17 +61,27 @@ function switchTab(name, el) {
   if (name === 'marketing') renderMarketing();
 }
 
+let refreshing = false;
 async function refreshData() {
+  if (refreshing) return;
+  refreshing = true;
   const url = getDatalakeUrl();
-  if (!url) return;
+  if (!url) { refreshing = false; return; }
   const grid = $('corso-grid');
-  if (grid) grid.innerHTML = '<div class="loading"><div class="spinner"></div>Caricamento…</div>';
+  if (grid && !state.DL) grid.innerHTML = '<div class="loading"><div class="spinner"></div>Caricamento…</div>';
+  const btn = $('btn-refresh');
+  const origBtnText = btn ? btn.textContent : '';
+  if (btn) { btn.textContent = 'Caricamento…'; btn.disabled = true; btn.style.opacity = '.75'; }
   try {
     const data = await fetchDatalake(url);
     updateLastRefreshLabel(data);
     renderAll();
   } catch (e) {
-    if (grid) grid.innerHTML = `<div class="empty-state"><h3>Errore</h3><p>${e.message}</p></div>`;
+    if (grid && !state.DL) grid.innerHTML = `<div class="empty-state"><h3>Errore</h3><p>${e.message}</p></div>`;
+    else alert('Aggiornamento fallito: ' + e.message);
+  } finally {
+    if (btn) { btn.textContent = origBtnText || 'Aggiorna'; btn.disabled = false; btn.style.opacity = ''; }
+    refreshing = false;
   }
 }
 

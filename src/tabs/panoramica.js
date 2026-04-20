@@ -84,18 +84,19 @@ export function renderPanoramica(corsi) {
   const suggestions = buildSuggestions();
   const sugWrap = $('suggestions-wrap');
   if (sugWrap) {
-    let sugHtml = '';
+    let sugHtml = '<div style="margin-top:24px">';
     if (suggestions.length > 0) {
       sugHtml += `<div class="section"><div class="section-title"><span class="tt-left">Suggerimenti automatici</span><span class="tt-right">generati sui dati correnti</span></div>${suggestions.map(suggestCardHTML).join('')}</div>`;
     }
     // Chart grid: revenue per intake (reale vs target) + donut iscritti per intake
     const intakesForDonut = [...new Set(v.map((c) => c.intake).filter(Boolean))];
     if (v.length > 0) {
-      sugHtml += `<div class="grid-2-1" style="margin-bottom:14px">`
+      sugHtml += `<div class="grid-2-1">`
         + `<div class="section" style="margin-bottom:0"><div class="section-title"><span class="tt-left">Revenue per intake</span><span class="tt-right">reale vs target · fonte O&A Summary</span></div><div class="chart-wrap h-260"><canvas id="chartRevIntake"></canvas></div></div>`
         + `<div class="section" style="margin-bottom:0"><div class="section-title"><span class="tt-left">Iscritti per intake</span><span class="tt-right">${ti} totali</span></div><div class="chart-wrap h-260"><canvas id="chartIntake"></canvas></div></div>`
         + `</div>`;
     }
+    sugHtml += '</div>';
     sugWrap.innerHTML = sugHtml;
 
     if (v.length > 0) {
@@ -165,9 +166,9 @@ export function renderPanoramica(corsi) {
     const campBadge = ac > 0 ? `<span class="corso-tag" style="background:var(--sky-l);color:var(--sky-deep)">${ac} mktg</span>` : '';
     const dataBadge = dOk ? '<span class="corso-tag tag-ok">Dati OK</span>' : '<span class="corso-tag tag-warn">Dati mancanti</span>';
 
-    return `<div class="corso-card ${isZR ? 'zona-rossa' : ''}" style="border-left-color:${color}">`
+    return `<div class="corso-card ${isZR ? 'zona-rossa' : ''}">`
+      + (isZR ? `<div class="corso-zr"><span>⚑ ZONA ROSSA</span><span>${days}gg · ${c.pctTarget}%</span></div>` : '')
       + `<div class="corso-name">${c.nome}</div>`
-      + (isZR ? `<div class="corso-zr">⚑ ZONA ROSSA — ${days}gg al via · ${c.pctTarget}% target</div>` : '')
       + `<div class="corso-meta"><span class="corso-tag tag-intake">${il}</span><span class="corso-tag tag-tipo">${c.tipo || ''}</span><span class="corso-tag ${stC}">${stL}</span>${campBadge}${dataBadge}</div>`
       + `<div class="corso-date">${sd ? sd + ' — ' : ''}${days > 0 ? `<b>${days}gg al via</b>` : days === 0 ? '<b>Oggi</b>' : '<b>In corso</b>'}${c.pricing > 0 ? `  |  <span style="font-family:var(--mono);font-weight:700;color:var(--ink)">${fE(c.pricing)}/persona</span>` : ''}</div>`
       + `<div class="prog"><div class="prog-top"><span class="prog-label">Iscritti (O&A)</span><div class="prog-nums"><span class="prog-iscritti" style="color:${color}">${c.iscrittiOA}</span><span class="prog-target">/ ${c.target}</span><span class="prog-pct" style="background:${color}">${c.pctTarget}%</span></div></div>`

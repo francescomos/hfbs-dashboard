@@ -518,10 +518,12 @@ table.t tr.row-bad td{background:rgba(239,68,68,.04)}
 
 /* Course cards (legacy .corso-card → design .card) */
 .corso-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
-.corso-card{background:var(--card);border-radius:var(--r-lg);box-shadow:var(--sh-sm);border:1px solid transparent;padding:20px 22px;transition:all .25s;cursor:pointer;position:relative;overflow:hidden}
+.corso-card{background:var(--card);border-radius:var(--r-lg);box-shadow:var(--sh-sm);border:1px solid transparent;padding:20px 22px;transition:all .25s;cursor:pointer;position:relative;overflow:hidden;display:flex;flex-direction:column}
 .corso-card:hover{transform:translateY(-4px);box-shadow:var(--sh-lg)}
-.corso-card.zona-rossa{border:1.5px solid var(--alert);box-shadow:0 0 0 4px var(--alert-ll),var(--sh-sm)}
-.corso-zr{background:linear-gradient(90deg,var(--alert) 0%,var(--alert-2) 100%);color:#fff;padding:6px 12px;margin:-20px -22px 14px;font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;border-radius:var(--r-lg) var(--r-lg) 0 0}
+.corso-card.zona-rossa{border:1.5px solid var(--alert);box-shadow:0 0 0 4px var(--alert-ll),var(--sh-sm);padding:0 22px 20px}
+.corso-card.zona-rossa > *:not(.corso-zr){margin-left:0}
+.corso-zr{background:linear-gradient(90deg,var(--alert) 0%,var(--alert-2) 100%);color:#fff;padding:8px 16px;margin:0 -22px 14px;font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center;border-radius:var(--r-lg) var(--r-lg) 0 0}
+.corso-card.zona-rossa > .corso-name{margin-top:4px}
 .corso-name{font-weight:800;font-size:17px;line-height:1.22;letter-spacing:-.015em;color:var(--ink);margin-bottom:10px}
 .corso-meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:10px}
 .corso-tag{padding:4px 10px;border-radius:var(--r-pill);font-size:10.5px;font-weight:700;line-height:1.3;letter-spacing:.02em;display:inline-block}
@@ -611,6 +613,16 @@ table.t tr.row-bad td{background:rgba(239,68,68,.04)}
 
 /* last-update legacy alias */
 .last-update{font-size:11px;color:var(--ink-3);font-family:var(--mono)}
+
+/* Qualita: force 3 columns on q-grid, collapsing responsive below 900px */
+#qualita-content .q-grid{grid-template-columns:repeat(3,1fr)}
+@media (max-width:1100px){#qualita-content .q-grid{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:700px){#qualita-content .q-grid{grid-template-columns:1fr}}
+
+/* Marketing: force 5 columns on the main KPI grid */
+#marketing-content > .kpi-row:first-child,#marketing-content > .kpi-grid:first-child{grid-template-columns:repeat(5,1fr)}
+@media (max-width:1280px){#marketing-content > .kpi-row:first-child,#marketing-content > .kpi-grid:first-child{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:900px){#marketing-content > .kpi-row:first-child,#marketing-content > .kpi-grid:first-child{grid-template-columns:repeat(2,1fr)}}
 
 /* Legacy color var aliases for inline styles (var(--text1), var(--green), ecc.) */
 :root{
