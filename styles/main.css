@@ -521,8 +521,7 @@ table.t tr.row-bad td{background:rgba(239,68,68,.04)}
 .corso-card{background:var(--card);border-radius:var(--r-lg);box-shadow:var(--sh-sm);border:1px solid transparent;padding:20px 22px;transition:all .25s;cursor:pointer;position:relative;overflow:hidden;display:flex;flex-direction:column}
 .corso-card:hover{transform:translateY(-4px);box-shadow:var(--sh-lg)}
 .corso-card.zona-rossa{border:1.5px solid var(--alert);box-shadow:0 0 0 4px var(--alert-ll),var(--sh-sm);padding:0 22px 20px}
-.corso-card.zona-rossa > *:not(.corso-zr){margin-left:0}
-.corso-zr{background:linear-gradient(90deg,var(--alert) 0%,var(--alert-2) 100%);color:#fff;padding:8px 16px;margin:0 -22px 14px;font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center;border-radius:var(--r-lg) var(--r-lg) 0 0}
+.corso-zr{background:linear-gradient(90deg,var(--alert) 0%,var(--alert-2) 100%);color:#fff;padding:8px 22px;margin:0 -22px 14px;font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center;border-radius:var(--r-lg) var(--r-lg) 0 0;width:calc(100% + 44px);box-sizing:border-box;align-self:stretch;flex-shrink:0}
 .corso-card.zona-rossa > .corso-name{margin-top:4px}
 .corso-name{font-weight:800;font-size:17px;line-height:1.22;letter-spacing:-.015em;color:var(--ink);margin-bottom:10px}
 .corso-meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:10px}
