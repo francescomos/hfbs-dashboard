@@ -146,15 +146,15 @@ export function renderProdotto() {
   h += `<div class="chart-wrap h-340"><canvas id="chartFunnel"></canvas></div></div>`;
 
   // Revenue per edizione + donut canali affiancati
-  const chKeys = ['b2b', 'b2c', 'jakala', 'referral', 'partner', 'free'];
+  const chKeysChart = ['b2b', 'b2c', 'jakala', 'referral', 'partner', 'free'];
   const chTotObj = {};
-  chKeys.forEach((k) => { chTotObj[k.toUpperCase()] = filteredCorsi.reduce((s, c) => s + (c.channels?.[k]?.i || 0), 0); });
+  chKeysChart.forEach((k) => { chTotObj[k.toUpperCase()] = filteredCorsi.reduce((s, c) => s + (c.channels?.[k]?.i || 0), 0); });
   const chKeysUp = ['B2B', 'B2C', 'JAKALA', 'REFERRAL', 'PARTNER', 'FREE'];
-  const totChI = chKeysUp.reduce((s, k) => s + chTotObj[k], 0);
-  if (totChI > 0 || filteredCorsi.length > 1) {
+  const totChIChart = chKeysUp.reduce((s, k) => s + chTotObj[k], 0);
+  if (totChIChart > 0 || filteredCorsi.length > 1) {
     h += `<div class="grid-2" style="margin-bottom:14px">`;
-    if (totChI > 0) {
-      h += `<div class="section" style="margin-bottom:0"><div class="section-title"><span class="tt-left">Canali di acquisizione</span><span class="tt-right">${totChI} iscritti</span></div><div class="chart-wrap h-260"><canvas id="chartChannels"></canvas></div></div>`;
+    if (totChIChart > 0) {
+      h += `<div class="section" style="margin-bottom:0"><div class="section-title"><span class="tt-left">Canali di acquisizione</span><span class="tt-right">${totChIChart} iscritti</span></div><div class="chart-wrap h-260"><canvas id="chartChannels"></canvas></div></div>`;
     }
     if (filteredCorsi.length > 1) {
       h += `<div class="section" style="margin-bottom:0"><div class="section-title"><span class="tt-left">Revenue per edizione</span><span class="tt-right">€ reali vs target</span></div><div class="chart-wrap h-260"><canvas id="chartRevEd"></canvas></div></div>`;
@@ -430,7 +430,7 @@ export function renderProdotto() {
 
   // Disegna chart dopo il render
   drawFunnelChart('chartFunnel', filteredCorsi);
-  if (totChI > 0) drawChannelsDonut('chartChannels', chKeysUp, chTotObj);
+  if (totChIChart > 0) drawChannelsDonut('chartChannels', chKeysUp, chTotObj);
   if (filteredCorsi.length > 1) drawRevPerEdition('chartRevEd', filteredCorsi);
 }
 
