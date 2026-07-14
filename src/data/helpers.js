@@ -14,6 +14,16 @@ function prodsForCurrentYear() {
   return prods;
 }
 
+// How many distinct academic years does this product code appear in?
+function yearCountForProd(prod) {
+  const cfg = state.DL?.Config_Corsi || [];
+  const years = new Set();
+  cfg.forEach((c) => {
+    if (nP(c.siglaProdotto) === prod && c.anno) years.add(c.anno);
+  });
+  return years.size || 1;
+}
+
 export function getRealSpend() {
   const DL = state.DL;
   if (!DL) return 0;
@@ -23,15 +33,30 @@ export function getRealSpend() {
   (DL.Meta_Campaigns || []).forEach((c) => {
     const s = (c.sigle || '').split(',').map((x) => nP(x.trim())).filter(Boolean);
     if (!s.length) return;
-    // Count only the share of spend belonging to products in this year
-    const inYear = s.filter((sig) => yearProds.has(sig)).length;
-    if (inYear > 0) total += ((parseFloat(c.spend) || 0) * inYear) / s.length;
+    const spend = parseFloat(c.spend) || 0;
+    if (!spend) return;
+    // For each sigla in this campaign, add its share only if in current year,
+    // divided by how many years that product exists in
+    let campShare = 0;
+    s.forEach((sig) => {
+      if (yearProds.has(sig)) {
+        campShare += (spend / s.length) / yearCountForProd(sig);
+      }
+    });
+    total += campShare;
   });
   (DL.GAds_Campaigns || []).forEach((c) => {
     const s = (c.sigle || '').split(',').map((x) => nP(x.trim())).filter(Boolean);
     if (!s.length) return;
-    const inYear = s.filter((sig) => yearProds.has(sig)).length;
-    if (inYear > 0) total += ((parseFloat(c.cost) || 0) * inYear) / s.length;
+    const spend = parseFloat(c.cost) || 0;
+    if (!spend) return;
+    let campShare = 0;
+    s.forEach((sig) => {
+      if (yearProds.has(sig)) {
+        campShare += (spend / s.length) / yearCountForProd(sig);
+      }
+    });
+    total += campShare;
   });
   return total;
 }
@@ -39,17 +64,17 @@ export function getRealSpend() {
 export function getSpendForProd(prod) {
   const DL = state.DL;
   if (!DL) return 0;
-  // Only count if this prod is in the current year
   const yearProds = prodsForCurrentYear();
   if (!yearProds.has(prod)) return 0;
+  const yc = yearCountForProd(prod);
   let total = 0;
   (DL.Meta_Campaigns || []).forEach((c) => {
     const s = (c.sigle || '').split(',').map((x) => nP(x.trim())).filter(Boolean);
-    if (s.indexOf(prod) >= 0) total += (parseFloat(c.spend) || 0) / s.length;
+    if (s.indexOf(prod) >= 0) total += (parseFloat(c.spend) || 0) / s.length / yc;
   });
   (DL.GAds_Campaigns || []).forEach((c) => {
     const s = (c.sigle || '').split(',').map((x) => nP(x.trim())).filter(Boolean);
-    if (s.indexOf(prod) >= 0) total += (parseFloat(c.cost) || 0) / s.length;
+    if (s.indexOf(prod) >= 0) total += (parseFloat(c.cost) || 0) / s.length / yc;
   });
   return total;
 }
