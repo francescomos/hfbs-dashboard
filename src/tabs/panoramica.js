@@ -1,50 +1,45 @@
 import { state } from '../state.js';
-import { IF, IS, INTAKE_ORDER_PANORAMICA } from '../constants.js';
+import { IF, IS, AY } from '../constants.js';
 import { fE, fEk, fD } from '../utils/format.js';
 import { dTS, cSt, bC } from '../utils/normalize.js';
 import { $ } from '../utils/dom.js';
-import { buildCorsi } from '../data/buildCorsi.js';
+import { corsiForYear } from '../data/corsiForYear.js';
 import { getRealSpend, getActiveCampaignCount } from '../data/helpers.js';
 import { buildSuggestions, suggestCardHTML } from '../data/insights.js';
 import { drawRevenuePerIntake, drawIntakeDonut } from '../charts/chartjs.js';
 import { ZR_PCT_TARGET, ZR_MAX_DAYS } from '../data/thresholds.js';
 
 export function renderFilters(corsi) {
-  const ii = [...new Set(corsi.map((x) => x.edizione).filter(Boolean))];
-  ii.sort((a, b) => {
-    const ia = INTAKE_ORDER_PANORAMICA.indexOf(a);
-    const ib = INTAKE_ORDER_PANORAMICA.indexOf(b);
-    return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
-  });
+  const intakes = AY[state.year] || [];
   const counts = {};
-  corsi.forEach((c) => { counts[c.edizione] = (counts[c.edizione] || 0) + 1; });
+  corsi.forEach((c) => { counts[c.intake] = (counts[c.intake] || 0) + 1; });
   $('filters').innerHTML =
     `<span class="filter-label">Intake</span>`
     + `<button class="chip active" data-filter="all">Tutti <span class="cnt">${corsi.length}</span></button>`
-    + ii.map((i) => `<button class="chip" data-filter="${i}">${IF[IS[i]] || i} <span class="cnt">${counts[i] || 0}</span></button>`).join('');
+    + intakes.map((i) => `<button class="chip" data-filter="${i}">${IF[i] || i} <span class="cnt">${counts[i] || 0}</span></button>`).join('');
 }
 
 export function setSearch(q) {
   state.search = q || '';
-  if (state.DL) renderPanoramica(buildCorsi());
+  if (state.DL) renderPanoramica(corsiForYear());
 }
 
 export function setFilter(filter, el) {
   state.filter = filter;
   document.querySelectorAll('#filters .chip, #filters .filter-pill').forEach((p) => p.classList.remove('active'));
   if (el) el.classList.add('active');
-  renderPanoramica(buildCorsi());
+  renderPanoramica(corsiForYear());
 }
 
 export function setSort(key) {
   state.sortBy = state.sortBy === key ? null : key;
   document.querySelectorAll('.kpi').forEach((x) => x.classList.toggle('active-sort', x.dataset.sort === state.sortBy));
-  renderPanoramica(buildCorsi());
+  renderPanoramica(corsiForYear());
 }
 
 export function renderPanoramica(corsi) {
   const f = state.filter;
-  const v = f === 'all' ? corsi : corsi.filter((c) => c.edizione === f);
+  const v = f === 'all' ? corsi : corsi.filter((c) => c.intake === f);
 
   const ti = v.reduce((s, c) => s + c.iscrittiOA, 0);
   const tt = v.reduce((s, c) => s + c.target, 0);

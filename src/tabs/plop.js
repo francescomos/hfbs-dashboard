@@ -1,14 +1,14 @@
 import { state } from '../state.js';
 import { fE } from '../utils/format.js';
 import { $ } from '../utils/dom.js';
-import { buildCorsi } from '../data/buildCorsi.js';
+import { corsiForYear } from '../data/corsiForYear.js';
 import { plStatus, computeOrphanMktg } from './pl.js';
 
 export function renderPLOP() {
   const DL = state.DL;
   if (!DL) return;
   const ct = $('plop-content');
-  const corsi = buildCorsi();
+  const corsi = corsiForYear();
 
   // Prodotti B2C (coerente con P&L Prodotti)
   const { orphanTotal } = computeOrphanMktg(corsi);

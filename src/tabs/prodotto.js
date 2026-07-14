@@ -3,7 +3,7 @@ import { IF, TL, SC } from '../constants.js';
 import { fE, fEk, fD, fDshort } from '../utils/format.js';
 import { cSt, bC, dTS } from '../utils/normalize.js';
 import { $, escapeAttr } from '../utils/dom.js';
-import { buildCorsi } from '../data/buildCorsi.js';
+import { corsiForYear } from '../data/corsiForYear.js';
 import {
   getSpendForProd,
   getCampaignsForCorso,
@@ -23,7 +23,7 @@ import { buildDailyChart } from '../charts/dailyChart.js';
 import { drawFunnelChart, drawChannelsDonut, drawRevPerEdition } from '../charts/chartjs.js';
 
 export function populateProdSelect() {
-  const corsi = buildCorsi();
+  const corsi = corsiForYear();
   const p = {};
   for (const x of corsi) {
     if (!p[x.nome]) p[x.nome] = [];
@@ -44,7 +44,7 @@ export function renderProdotto() {
     ct.innerHTML = '<div class="empty-state"><h3>Seleziona un prodotto</h3></div>';
     return;
   }
-  const corsi = buildCorsi().filter((c) => c.nome === nome);
+  const corsi = corsiForYear().filter((c) => c.nome === nome);
   if (!corsi.length) {
     ct.innerHTML = '<div class="empty-state"><h3>Non trovato</h3></div>';
     return;

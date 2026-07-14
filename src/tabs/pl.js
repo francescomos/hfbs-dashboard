@@ -1,9 +1,9 @@
 import { state } from '../state.js';
-import { IF, INTAKE_ORDER_PL, INTAKE_LABEL_PL, BRAND_SIGLE } from '../constants.js';
+import { IF, AY, BRAND_SIGLE } from '../constants.js';
 import { fE, fDshort } from '../utils/format.js';
 import { nP, dTS } from '../utils/normalize.js';
 import { $ } from '../utils/dom.js';
-import { buildCorsi } from '../data/buildCorsi.js';
+import { corsiForYear } from '../data/corsiForYear.js';
 
 export function plStatus(c) {
   const days = dTS(c);
@@ -57,7 +57,8 @@ export function renderPL() {
   const DL = state.DL;
   if (!DL) return;
   const ct = $('pl-content');
-  const corsi = buildCorsi();
+  const corsi = corsiForYear();
+  const intakeOrder = AY[state.year] || [];
   const { orphanMktg, brandSpend, orphanTotal } = computeOrphanMktg(corsi);
 
   const filtered = state.plFilter === 'all' ? corsi : corsi.filter((c) => c.intake === state.plFilter);
@@ -87,8 +88,8 @@ export function renderPL() {
   // Filtri intake
   h += '<div class="filters" style="margin-bottom:16px">';
   h += `<div class="filter-pill ${state.plFilter === 'all' ? 'active' : ''}" data-pl-filter="all">Tutti</div>`;
-  for (const intk of INTAKE_ORDER_PL)
-    h += `<div class="filter-pill ${state.plFilter === intk ? 'active' : ''}" data-pl-filter="${intk}">${INTAKE_LABEL_PL[intk] || intk}</div>`;
+  for (const intk of intakeOrder)
+    h += `<div class="filter-pill ${state.plFilter === intk ? 'active' : ''}" data-pl-filter="${intk}">${IF[intk] || intk}</div>`;
   h += '</div>';
 
   // Summary cards
@@ -107,10 +108,10 @@ export function renderPL() {
     if (!byIntake[intk]) byIntake[intk] = [];
     byIntake[intk].push(c);
   }
-  const orderedIntakes = INTAKE_ORDER_PL.filter((i) => byIntake[i]).concat(Object.keys(byIntake).filter((i) => !INTAKE_ORDER_PL.includes(i)));
+  const orderedIntakes = intakeOrder.filter((i) => byIntake[i]).concat(Object.keys(byIntake).filter((i) => !intakeOrder.includes(i)));
 
   const plHeaders = (intk) =>
-    `<tr style="background:#ddd8d0"><td colspan="2" style="font-weight:700;color:var(--text1);font-size:13px">${INTAKE_LABEL_PL[intk] || intk || ''}</td><td style="font-size:11px;font-weight:700;color:var(--text1)">Tipo</td><td style="font-size:11px;font-weight:700;color:var(--text1)">Stato</td><td style="font-size:11px;font-weight:700;color:var(--text1)">Start</td><td class="num" style="font-size:11px;font-weight:700;color:var(--text1)">Iscritti</td><td class="num" style="font-size:11px;font-weight:700;color:var(--text1)">Revenue</td><td class="num" style="font-size:11px;font-weight:700;color:var(--text1)">Produzione</td><td class="num" style="font-size:11px;font-weight:700;color:var(--text1)">Marketing</td><td class="num" style="font-size:11px;font-weight:700;color:var(--text1)">Margine</td><td class="num" style="font-size:11px;font-weight:700;color:var(--text1)">Marg %</td></tr>`;
+    `<tr style="background:#ddd8d0"><td colspan="2" style="font-weight:700;color:var(--text1);font-size:13px">${IF[intk] || intk || ''}</td><td style="font-size:11px;font-weight:700;color:var(--text1)">Tipo</td><td style="font-size:11px;font-weight:700;color:var(--text1)">Stato</td><td style="font-size:11px;font-weight:700;color:var(--text1)">Start</td><td class="num" style="font-size:11px;font-weight:700;color:var(--text1)">Iscritti</td><td class="num" style="font-size:11px;font-weight:700;color:var(--text1)">Revenue</td><td class="num" style="font-size:11px;font-weight:700;color:var(--text1)">Produzione</td><td class="num" style="font-size:11px;font-weight:700;color:var(--text1)">Marketing</td><td class="num" style="font-size:11px;font-weight:700;color:var(--text1)">Margine</td><td class="num" style="font-size:11px;font-weight:700;color:var(--text1)">Marg %</td></tr>`;
 
   for (const intk of orderedIntakes) {
     const rows = byIntake[intk].sort((a, b) => b.margine - a.margine);
@@ -143,7 +144,7 @@ export function renderPL() {
       h += '</tr>';
     }
     const snC = sN >= 0 ? 'var(--green)' : 'var(--red)';
-    h += `<tr class="row-sub"><td colspan="5" style="font-size:12px">Subtotale ${INTAKE_LABEL_PL[intk] || intk}</td><td class="num">${rows.reduce((s, c) => s + c.iscrittiOA, 0)}</td><td class="num" style="color:var(--green)">${fE(sR)}</td><td class="num">${fE(sP)}</td><td class="num">${fE(sM)}</td><td class="num" style="color:${snC}">${fE(sN)}</td><td class="num" style="color:${snC}">${sR > 0 ? Math.round((sN / sR) * 100) + '%' : '—'}</td></tr>`;
+    h += `<tr class="row-sub"><td colspan="5" style="font-size:12px">Subtotale ${IF[intk] || intk}</td><td class="num">${rows.reduce((s, c) => s + c.iscrittiOA, 0)}</td><td class="num" style="color:var(--green)">${fE(sR)}</td><td class="num">${fE(sP)}</td><td class="num">${fE(sM)}</td><td class="num" style="color:${snC}">${fE(sN)}</td><td class="num" style="color:${snC}">${sR > 0 ? Math.round((sN / sR) * 100) + '%' : '—'}</td></tr>`;
   }
 
   h += plHeaders('TOTALE GENERALE');

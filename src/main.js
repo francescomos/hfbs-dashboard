@@ -1,8 +1,9 @@
 import { STORAGE_KEY, DEFAULT_DATALAKE_URL } from './config.js';
-import { state } from './state.js';
+import { state, clearCorsiCache } from './state.js';
+import { AY_KEYS, AY, IF } from './constants.js';
 import { $ } from './utils/dom.js';
 import { fetchDatalake, getDatalakeUrl, saveDatalakeUrl, updateLastRefreshLabel } from './data/fetch.js';
-import { buildCorsi } from './data/buildCorsi.js';
+import { corsiForYear } from './data/corsiForYear.js';
 import {
   renderPanoramica, renderFilters, attachPanoramicaHandlers, setSearch,
 } from './tabs/panoramica.js';
@@ -14,8 +15,28 @@ import { renderPL, attachPLHandlers } from './tabs/pl.js';
 import { renderPLOP } from './tabs/plop.js';
 import { renderMonitor } from './tabs/monitor.js';
 
+function renderYearSelector() {
+  const el = $('year-selector');
+  if (!el) return;
+  el.innerHTML = AY_KEYS.map((y) => {
+    const active = state.year === y;
+    return `<button class="yr-btn${active ? ' yr-active' : ''}" data-year="${y}" style="padding:7px 16px;border:none;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;background:${active ? 'var(--ink,#111)' : 'var(--card,#fff)'};color:${active ? '#fff' : 'var(--ink2,#4a4944)'}">${y}</button>`;
+  }).join('');
+  el.querySelectorAll('.yr-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      state.year = btn.dataset.year;
+      state.filter = 'all';
+      state.sortBy = null;
+      state.selectedEdition = null;
+      clearCorsiCache();
+      renderYearSelector();
+      if (state.DL) renderAll();
+    });
+  });
+}
+
 function renderAll() {
-  const c = buildCorsi();
+  const c = corsiForYear();
   renderFilters(c);
   renderPanoramica(c);
   renderInsights(c);
@@ -132,6 +153,7 @@ function initSetup() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  renderYearSelector();
   initTabs();
   initSetup();
   updateTodayChip();

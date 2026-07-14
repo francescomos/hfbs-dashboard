@@ -7,6 +7,7 @@ export const state = {
   plFilter: 'all',
   qaExpanded: null,
   search: '',
+  year: '25/26',
 };
 
 export function setDL(data) {

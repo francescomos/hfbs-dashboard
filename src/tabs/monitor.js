@@ -2,7 +2,7 @@ import { state } from '../state.js';
 import { IF } from '../constants.js';
 import { cSt } from '../utils/normalize.js';
 import { $ } from '../utils/dom.js';
-import { buildCorsi } from '../data/buildCorsi.js';
+import { corsiForYear } from '../data/corsiForYear.js';
 
 export function renderMonitor() {
   const DL = state.DL;
@@ -23,7 +23,7 @@ export function renderMonitor() {
 
   $('monitor-global').innerHTML = h;
 
-  const corsi = buildCorsi();
+  const corsi = corsiForYear();
   const byN = {};
   for (const c of corsi) {
     if (!byN[c.nome]) byN[c.nome] = [];

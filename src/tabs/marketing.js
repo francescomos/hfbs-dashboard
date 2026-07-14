@@ -2,7 +2,7 @@ import { state } from '../state.js';
 import { fE } from '../utils/format.js';
 import { nP } from '../utils/normalize.js';
 import { $ } from '../utils/dom.js';
-import { buildCorsi } from '../data/buildCorsi.js';
+import { corsiForYear } from '../data/corsiForYear.js';
 import { buildDailyChart } from '../charts/dailyChart.js';
 
 export function renderMarketing() {
@@ -15,7 +15,7 @@ export function renderMarketing() {
   const ga4p = DL.GA4_Pages || [];
   const mcd = DL.Meta_Campaign_Daily || [];
   const brevoContacts = DL.Brevo_Contacts || [];
-  const corsi = buildCorsi();
+  const corsi = corsiForYear();
 
   let metaSpend = 0, metaLeads = 0, metaClicks = 0, metaImpr = 0;
   mc.forEach((c) => {

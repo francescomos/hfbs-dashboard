@@ -1,7 +1,7 @@
 import { state } from '../state.js';
 import { fD } from '../utils/format.js';
 import { $, escapeAttr } from '../utils/dom.js';
-import { buildCorsi } from '../data/buildCorsi.js';
+import { corsiForYear } from '../data/corsiForYear.js';
 
 const scoreColor = (v) => (v >= 4.5 ? 'var(--mint-deep)' : v >= 4 ? 'var(--mint-2)' : v >= 3.5 ? 'var(--amber-deep)' : 'var(--alert-2)');
 const stars = (v) => '★★★★★'.substring(0, Math.round(v)) + '☆☆☆☆☆'.substring(0, 5 - Math.round(v));
@@ -11,7 +11,7 @@ export function renderQualita() {
   if (!DL) return;
   const fb = DL.Feedback || [];
   const ct = $('qualita-content');
-  const corsi = buildCorsi();
+  const corsi = corsiForYear();
   const corsiNomi = new Set(corsi.map((c) => c.nome.toLowerCase()));
 
   const ws = fb.filter((f) => {

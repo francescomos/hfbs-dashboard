@@ -2,7 +2,7 @@ import { state } from '../state.js';
 import { IF } from '../constants.js';
 import { fE } from '../utils/format.js';
 import { nP, dTS, cSt } from '../utils/normalize.js';
-import { buildCorsi } from './buildCorsi.js';
+import { corsiForYear } from './corsiForYear.js';
 import {
   ZR_PCT_TARGET, ZR_MAX_DAYS, CPA_ALERT, NO_SHOW_ALERT_PCT,
 } from './thresholds.js';
@@ -17,7 +17,7 @@ import {
  *  - CPA alto: c.cpa > 1000
  */
 export function buildSuggestions() {
-  const corsi = buildCorsi();
+  const corsi = corsiForYear();
   const out = [];
 
   const zr = corsi.filter((c) => {
