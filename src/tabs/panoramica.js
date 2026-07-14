@@ -1,5 +1,5 @@
 import { state } from '../state.js';
-import { IF, IS, AY } from '../constants.js';
+import { IF } from '../constants.js';
 import { fE, fEk, fD } from '../utils/format.js';
 import { dTS, cSt, bC } from '../utils/normalize.js';
 import { $ } from '../utils/dom.js';
@@ -10,13 +10,18 @@ import { drawRevenuePerIntake, drawIntakeDonut } from '../charts/chartjs.js';
 import { ZR_PCT_TARGET, ZR_MAX_DAYS } from '../data/thresholds.js';
 
 export function renderFilters(corsi) {
-  const intakes = AY[state.year] || [];
+  const intakeSet = [...new Set(corsi.map((c) => c.intake).filter(Boolean))];
+  const intakeStart = {};
+  corsi.forEach((c) => {
+    if (c.intake && c.startDate && !intakeStart[c.intake]) intakeStart[c.intake] = c.startDate;
+  });
+  intakeSet.sort((a, b) => (intakeStart[a] || '').localeCompare(intakeStart[b] || ''));
   const counts = {};
   corsi.forEach((c) => { counts[c.intake] = (counts[c.intake] || 0) + 1; });
   $('filters').innerHTML =
     `<span class="filter-label">Intake</span>`
     + `<button class="chip active" data-filter="all">Tutti <span class="cnt">${corsi.length}</span></button>`
-    + intakes.map((i) => `<button class="chip" data-filter="${i}">${IF[i] || i} <span class="cnt">${counts[i] || 0}</span></button>`).join('');
+    + intakeSet.map((i) => `<button class="chip" data-filter="${i}">${IF[i] || i} <span class="cnt">${counts[i] || 0}</span></button>`).join('');
 }
 
 export function setSearch(q) {

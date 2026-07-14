@@ -1,5 +1,5 @@
 import { state } from '../state.js';
-import { IF, AY, BRAND_SIGLE } from '../constants.js';
+import { IF, BRAND_SIGLE } from '../constants.js';
 import { fE, fDshort } from '../utils/format.js';
 import { nP, dTS } from '../utils/normalize.js';
 import { $ } from '../utils/dom.js';
@@ -58,7 +58,7 @@ export function renderPL() {
   if (!DL) return;
   const ct = $('pl-content');
   const corsi = corsiForYear();
-  const intakeOrder = AY[state.year] || [];
+  const intakeOrder = [...new Set(corsi.map(c => c.intake).filter(Boolean))];
   const { orphanMktg, brandSpend, orphanTotal } = computeOrphanMktg(corsi);
 
   const filtered = state.plFilter === 'all' ? corsi : corsi.filter((c) => c.intake === state.plFilter);
