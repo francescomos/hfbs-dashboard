@@ -1,9 +1,10 @@
-import { state } from '../state.js?v=20260715b';
-import { IF, AY, BRAND_SIGLE } from '../constants.js?v=20260715b';
-import { fE, fDshort } from '../utils/format.js?v=20260715b';
-import { nP, dTS } from '../utils/normalize.js?v=20260715b';
-import { $ } from '../utils/dom.js?v=20260715b';
-import { corsiForYear } from '../data/corsiForYear.js?v=20260715b';
+import { state } from '../state.js?v=20260715c';
+import { IF, AY, BRAND_SIGLE } from '../constants.js?v=20260715c';
+import { fE, fDshort } from '../utils/format.js?v=20260715c';
+import { nP, dTS } from '../utils/normalize.js?v=20260715c';
+import { $ } from '../utils/dom.js?v=20260715c';
+import { corsiForYear } from '../data/corsiForYear.js?v=20260715c';
+import { getSpendForProd, getRealSpend, attributeCampaignToYear } from '../data/helpers.js?v=20260715c';
 
 export function plStatus(c) {
   const days = dTS(c);
@@ -15,58 +16,25 @@ export function plStatus(c) {
 
 export function computeOrphanMktg(corsi) {
   const DL = state.DL;
-  const mktg = DL.Mktg_ExEd || [];
-  const cfgFks = new Set(corsi.map((c) => c.fk));
   const corsiProds = new Set(corsi.map((c) => c.prod));
-  const allCfg = DL.Config_Corsi || [];
-  // All product codes across ALL years
-  const allProds = new Set();
-  allCfg.forEach((c) => { if (c.siglaProdotto) allProds.add(nP(c.siglaProdotto)); });
-  // yearCount helper
-  const ycCache = {};
-  const yc = (prod) => {
-    if (ycCache[prod] !== undefined) return ycCache[prod];
-    const years = new Set();
-    allCfg.forEach((c) => { if (nP(c.siglaProdotto) === prod && c.anno) years.add(c.anno); });
-    ycCache[prod] = years.size || 1;
-    return ycCache[prod];
-  };
-
   const orphanMktg = {};
-
-  for (const m of mktg) {
-    const s = (m.sigla || '').toUpperCase().split('-');
-    const fk = s.length >= 3 ? nP(s[0]) + '-' + s[2] : (m.sigla || '').toUpperCase();
-    if (!cfgFks.has(fk)) {
-      if (!orphanMktg[m.sigla]) orphanMktg[m.sigla] = 0;
-      orphanMktg[m.sigla] += parseFloat(m.budgetSpeso) || 0;
-    }
-  }
-
   let brandSpend = 0;
+
   const processCampaigns = (list, spendKey) => {
     list.forEach((c) => {
       const s = (c.sigle || '').split(',').filter(Boolean).map((x) => nP(x.trim()));
       const spend = parseFloat(c[spendKey]) || 0;
       if (spend <= 0) return;
-      // Skip if ANY sigla matches a product in the current year (handled by getSpendForProd)
       if (s.some((sig) => corsiProds.has(sig))) return;
-      // Brand campaigns: divide by 2 (assume 2 years)
+      const share = attributeCampaignToYear(s, spend);
+      if (share <= 0) return;
       if (s.some((sig) => BRAND_SIGLE[sig])) {
-        const numYears = Object.keys(AY).length || 2;
-        brandSpend += spend / numYears;
-        return;
-      }
-      // Campaigns matching products in OTHER years only — skip entirely for this year
-      if (s.some((sig) => allProds.has(sig))) return;
-      // Truly unallocated campaigns — divide by number of years
-      if (s.length > 0) {
+        brandSpend += share;
+      } else if (s.length > 0) {
         const key = s.join(',') + ' (' + c.campaignName.substring(0, 30) + ')';
-        const numYears = Object.keys(AY).length || 2;
-        orphanMktg[key] = (orphanMktg[key] || 0) + spend / numYears;
-      } else if (spend > 50) {
-        const numYears = Object.keys(AY).length || 2;
-        orphanMktg[c.campaignName.substring(0, 40)] = (orphanMktg[c.campaignName.substring(0, 40)] || 0) + spend / numYears;
+        orphanMktg[key] = (orphanMktg[key] || 0) + share;
+      } else if (share > 50) {
+        orphanMktg[c.campaignName.substring(0, 40)] = (orphanMktg[c.campaignName.substring(0, 40)] || 0) + share;
       }
     });
   };

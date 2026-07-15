@@ -1,6 +1,6 @@
-import { state } from '../state.js?v=20260715b';
-import { nP } from '../utils/normalize.js?v=20260715b';
-import { buildCorsi } from './buildCorsi.js?v=20260715b';
+import { state } from '../state.js?v=20260715c';
+import { nP } from '../utils/normalize.js?v=20260715c';
+import { buildCorsi } from './buildCorsi.js?v=20260715c';
 
 // Build set of product codes for the currently selected year
 function prodsForCurrentYear() {
@@ -24,39 +24,60 @@ function yearCountForProd(prod) {
   return years.size || 1;
 }
 
+// All product codes across ALL years
+function allProds() {
+  const cfg = state.DL?.Config_Corsi || [];
+  const prods = new Set();
+  cfg.forEach((c) => { if (c.siglaProdotto) prods.add(nP(c.siglaProdotto)); });
+  return prods;
+}
+
+function numAcademicYears() {
+  const cfg = state.DL?.Config_Corsi || [];
+  const years = new Set();
+  cfg.forEach((c) => { if (c.anno) years.add(c.anno); });
+  return years.size || 1;
+}
+
+// Single source of truth for year-aware campaign spend attribution
+export function attributeCampaignToYear(sigle, spend) {
+  if (!spend) return 0;
+  const yearProds = prodsForCurrentYear();
+  const ap = allProds();
+  const ny = numAcademicYears();
+
+  if (!sigle.length) {
+    // No sigla at all → split across all years
+    return spend / ny;
+  }
+
+  let share = 0;
+  let anyMatchedAnyYear = false;
+  sigle.forEach((sig) => {
+    if (ap.has(sig)) anyMatchedAnyYear = true;
+    if (yearProds.has(sig)) {
+      share += (spend / sigle.length) / yearCountForProd(sig);
+    }
+  });
+
+  if (share > 0) return share;
+  // Matched products but none in current year → 0
+  if (anyMatchedAnyYear) return 0;
+  // No product match at all (brand/orphan) → split across years
+  return spend / ny;
+}
+
 export function getRealSpend() {
   const DL = state.DL;
   if (!DL) return 0;
-  const yearProds = prodsForCurrentYear();
-  if (!yearProds.size) return 0;
   let total = 0;
   (DL.Meta_Campaigns || []).forEach((c) => {
     const s = (c.sigle || '').split(',').map((x) => nP(x.trim())).filter(Boolean);
-    if (!s.length) return;
-    const spend = parseFloat(c.spend) || 0;
-    if (!spend) return;
-    // For each sigla in this campaign, add its share only if in current year,
-    // divided by how many years that product exists in
-    let campShare = 0;
-    s.forEach((sig) => {
-      if (yearProds.has(sig)) {
-        campShare += (spend / s.length) / yearCountForProd(sig);
-      }
-    });
-    total += campShare;
+    total += attributeCampaignToYear(s, parseFloat(c.spend) || 0);
   });
   (DL.GAds_Campaigns || []).forEach((c) => {
     const s = (c.sigle || '').split(',').map((x) => nP(x.trim())).filter(Boolean);
-    if (!s.length) return;
-    const spend = parseFloat(c.cost) || 0;
-    if (!spend) return;
-    let campShare = 0;
-    s.forEach((sig) => {
-      if (yearProds.has(sig)) {
-        campShare += (spend / s.length) / yearCountForProd(sig);
-      }
-    });
-    total += campShare;
+    total += attributeCampaignToYear(s, parseFloat(c.cost) || 0);
   });
   return total;
 }

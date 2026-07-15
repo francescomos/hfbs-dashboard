@@ -1,6 +1,6 @@
-import { state } from '../state.js?v=20260715b';
-import { nI, nP } from '../utils/normalize.js?v=20260715b';
-import { getSpendForProd } from './helpers.js?v=20260715b';
+import { state } from '../state.js?v=20260715c';
+import { nI, nP } from '../utils/normalize.js?v=20260715c';
+import { getSpendForProd } from './helpers.js?v=20260715c';
 
 const emptyChannels = () => ({
   b2b: { i: 0, r: 0 },
