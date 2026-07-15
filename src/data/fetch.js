@@ -1,7 +1,7 @@
-import { STORAGE_KEY, DEFAULT_DATALAKE_URL } from '../config.js?v=20260715';
-import { setDL } from '../state.js?v=20260715';
-import { validateDatalake } from './schema.js?v=20260715';
-import { $ } from '../utils/dom.js?v=20260715';
+import { STORAGE_KEY, DEFAULT_DATALAKE_URL } from '../config.js?v=20260715b';
+import { setDL } from '../state.js?v=20260715b';
+import { validateDatalake } from './schema.js?v=20260715b';
+import { $ } from '../utils/dom.js?v=20260715b';
 
 export function getDatalakeUrl() {
   return localStorage.getItem(STORAGE_KEY) || DEFAULT_DATALAKE_URL;

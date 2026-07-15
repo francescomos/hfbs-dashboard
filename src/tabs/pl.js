@@ -1,9 +1,9 @@
-import { state } from '../state.js?v=20260715';
-import { IF, BRAND_SIGLE } from '../constants.js?v=20260715';
-import { fE, fDshort } from '../utils/format.js?v=20260715';
-import { nP, dTS } from '../utils/normalize.js?v=20260715';
-import { $ } from '../utils/dom.js?v=20260715';
-import { corsiForYear } from '../data/corsiForYear.js?v=20260715';
+import { state } from '../state.js?v=20260715b';
+import { IF, AY, BRAND_SIGLE } from '../constants.js?v=20260715b';
+import { fE, fDshort } from '../utils/format.js?v=20260715b';
+import { nP, dTS } from '../utils/normalize.js?v=20260715b';
+import { $ } from '../utils/dom.js?v=20260715b';
+import { corsiForYear } from '../data/corsiForYear.js?v=20260715b';
 
 export function plStatus(c) {
   const days = dTS(c);
@@ -18,6 +18,20 @@ export function computeOrphanMktg(corsi) {
   const mktg = DL.Mktg_ExEd || [];
   const cfgFks = new Set(corsi.map((c) => c.fk));
   const corsiProds = new Set(corsi.map((c) => c.prod));
+  const allCfg = DL.Config_Corsi || [];
+  // All product codes across ALL years
+  const allProds = new Set();
+  allCfg.forEach((c) => { if (c.siglaProdotto) allProds.add(nP(c.siglaProdotto)); });
+  // yearCount helper
+  const ycCache = {};
+  const yc = (prod) => {
+    if (ycCache[prod] !== undefined) return ycCache[prod];
+    const years = new Set();
+    allCfg.forEach((c) => { if (nP(c.siglaProdotto) === prod && c.anno) years.add(c.anno); });
+    ycCache[prod] = years.size || 1;
+    return ycCache[prod];
+  };
+
   const orphanMktg = {};
 
   for (const m of mktg) {
@@ -35,13 +49,24 @@ export function computeOrphanMktg(corsi) {
       const s = (c.sigle || '').split(',').filter(Boolean).map((x) => nP(x.trim()));
       const spend = parseFloat(c[spendKey]) || 0;
       if (spend <= 0) return;
+      // Skip if ANY sigla matches a product in the current year (handled by getSpendForProd)
       if (s.some((sig) => corsiProds.has(sig))) return;
-      if (s.some((sig) => BRAND_SIGLE[sig])) { brandSpend += spend; return; }
+      // Brand campaigns: divide by 2 (assume 2 years)
+      if (s.some((sig) => BRAND_SIGLE[sig])) {
+        const numYears = Object.keys(AY).length || 2;
+        brandSpend += spend / numYears;
+        return;
+      }
+      // Campaigns matching products in OTHER years only — skip entirely for this year
+      if (s.some((sig) => allProds.has(sig))) return;
+      // Truly unallocated campaigns — divide by number of years
       if (s.length > 0) {
         const key = s.join(',') + ' (' + c.campaignName.substring(0, 30) + ')';
-        orphanMktg[key] = (orphanMktg[key] || 0) + spend;
+        const numYears = Object.keys(AY).length || 2;
+        orphanMktg[key] = (orphanMktg[key] || 0) + spend / numYears;
       } else if (spend > 50) {
-        orphanMktg[c.campaignName.substring(0, 40)] = (orphanMktg[c.campaignName.substring(0, 40)] || 0) + spend;
+        const numYears = Object.keys(AY).length || 2;
+        orphanMktg[c.campaignName.substring(0, 40)] = (orphanMktg[c.campaignName.substring(0, 40)] || 0) + spend / numYears;
       }
     });
   };
@@ -85,11 +110,17 @@ export function renderPL() {
   const tipoColors = { RE: '#f59e0b', PM: '#3b82f6', IC: '#7c3aed', MB: '#22c55e', ME: '#10b981', SC: '#6366f1', SP: '#ec4899' };
 
   let h = '';
-  // Filtri intake
-  h += '<div class="filters" style="margin-bottom:16px">';
+  // Filtri intake + toggle vista
+  h += '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap">';
+  h += '<div class="filters" style="margin:0">';
   h += `<div class="filter-pill ${state.plFilter === 'all' ? 'active' : ''}" data-pl-filter="all">Tutti</div>`;
   for (const intk of intakeOrder)
     h += `<div class="filter-pill ${state.plFilter === intk ? 'active' : ''}" data-pl-filter="${intk}">${IF[intk] || intk}</div>`;
+  h += '</div>';
+  h += '<div class="filters" style="margin:0">';
+  h += `<div class="filter-pill ${state.plViewMode === 'grouped' ? 'active' : ''}" data-pl-view="grouped">Raggruppato</div>`;
+  h += `<div class="filter-pill ${state.plViewMode === 'flat' ? 'active' : ''}" data-pl-view="flat">Tabella piatta</div>`;
+  h += '</div>';
   h += '</div>';
 
   // Summary cards
@@ -101,67 +132,134 @@ export function renderPL() {
   h += `<div class="kpi"><div class="kpi-label">Margine netto</div><div class="kpi-value" style="color:${margCol}">${fE(totNetto)}</div><div class="kpi-sub">${totRev > 0 ? Math.round((totNetto / totRev) * 100) + '% su revenue' : '—'}</div></div>`;
   h += '</div>';
 
-  h += '<div style="overflow-x:auto"><table class="mtable" style="min-width:900px"><tbody>';
-  const byIntake = {};
-  for (const c of enriched) {
-    const intk = c.intake || 'OTHER';
-    if (!byIntake[intk]) byIntake[intk] = [];
-    byIntake[intk].push(c);
-  }
-  const orderedIntakes = intakeOrder.filter((i) => byIntake[i]).concat(Object.keys(byIntake).filter((i) => !intakeOrder.includes(i)));
+  if (state.plViewMode === 'flat') {
+    // Tabella piatta sortabile su tutti i corsi dell'anno.
+    const SORT_KEYS = {
+      sig: (c) => (c.sig || '').toString(),
+      nome: (c) => (c.nome || '').toString(),
+      tipo: (c) => (c.tipo || '').toString(),
+      intake: (c) => (c.intake || '').toString(),
+      stato: (c) => c.st || '',
+      start: (c) => (c.startDate ? new Date(c.startDate).getTime() : 0),
+      iscritti: (c) => c.iscrittiOA || 0,
+      revenue: (c) => c.revenueOA || 0,
+      prod: (c) => c.costiProd || 0,
+      mktg: (c) => c.costiMktg || 0,
+      margine: (c) => c.margine || 0,
+      margPct: (c) => (c.margPct === null ? -Infinity : c.margPct),
+    };
+    const sortKey = SORT_KEYS[state.plSortBy] ? state.plSortBy : 'margine';
+    const sortDir = state.plSortDir === 'asc' ? 1 : -1;
+    const sorted = [...enriched].sort((a, b) => {
+      const va = SORT_KEYS[sortKey](a);
+      const vb = SORT_KEYS[sortKey](b);
+      if (typeof va === 'string') return va.localeCompare(vb) * sortDir;
+      return (va - vb) * sortDir;
+    });
+    const arrow = (k) => (sortKey === k ? (state.plSortDir === 'asc' ? ' ▲' : ' ▼') : '');
+    const thSort = (k, label, num) =>
+      `<th class="${num ? 'num' : ''}" data-pl-sort="${k}" style="cursor:pointer;user-select:none;color:var(--text1);font-size:11px">${label}${arrow(k)}</th>`;
 
-  const plHeaders = (intk) =>
-    `<tr style="background:#ddd8d0"><td colspan="2" style="font-weight:700;color:var(--text1);font-size:13px">${IF[intk] || intk || ''}</td><td style="font-size:11px;font-weight:700;color:var(--text1)">Tipo</td><td style="font-size:11px;font-weight:700;color:var(--text1)">Stato</td><td style="font-size:11px;font-weight:700;color:var(--text1)">Start</td><td class="num" style="font-size:11px;font-weight:700;color:var(--text1)">Iscritti</td><td class="num" style="font-size:11px;font-weight:700;color:var(--text1)">Revenue</td><td class="num" style="font-size:11px;font-weight:700;color:var(--text1)">Produzione</td><td class="num" style="font-size:11px;font-weight:700;color:var(--text1)">Marketing</td><td class="num" style="font-size:11px;font-weight:700;color:var(--text1)">Margine</td><td class="num" style="font-size:11px;font-weight:700;color:var(--text1)">Marg %</td></tr>`;
+    h += '<div style="overflow-x:auto"><table class="mtable" style="min-width:1000px"><thead><tr style="background:#ddd8d0">';
+    h += thSort('sig', 'Sigla', false);
+    h += thSort('nome', 'Nome', false);
+    h += thSort('tipo', 'Tipo', false);
+    h += thSort('intake', 'Intake', false);
+    h += thSort('stato', 'Stato', false);
+    h += thSort('start', 'Start', false);
+    h += thSort('iscritti', 'Iscritti', true);
+    h += thSort('revenue', 'Revenue', true);
+    h += thSort('prod', 'Produzione', true);
+    h += thSort('mktg', 'Marketing', true);
+    h += thSort('margine', 'Margine', true);
+    h += thSort('margPct', 'Marg %', true);
+    h += '</tr></thead><tbody>';
 
-  for (const intk of orderedIntakes) {
-    const rows = byIntake[intk].sort((a, b) => b.margine - a.margine);
-    const sR = rows.reduce((s, c) => s + c.revenueOA, 0);
-    const sP = rows.reduce((s, c) => s + c.costiProd, 0);
-    const sM = rows.reduce((s, c) => s + c.costiMktg, 0);
-    const sN = sR - sP - sM;
-
-    h += plHeaders(intk);
-    for (const c of rows) {
+    for (const c of sorted) {
       const mc = c.margine >= 0 ? 'var(--green)' : 'var(--red)';
       const tipo = (c.tipo || '').toUpperCase().substring(0, 2);
-      const days = dTS(c);
       const startStr = c.startDate ? fDshort(c.startDate) : '—';
-      const futureNote = (c.st === 'future' && days > 0 && days < 999) ? ` <span style="font-size:11px;color:var(--text3)">(tra ${days}gg)</span>` : '';
-      const prodNote = !c.partito ? `<span style="font-size:10px;color:var(--text3);margin-left:4px">${c.st === 'future' ? 'proiettati' : 'non sost.'}</span>` : '';
-
       h += '<tr>';
       h += `<td style="font-family:var(--mono);font-size:12px;color:var(--text3)">${c.sig}</td>`;
-      h += `<td style="font-weight:600;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${c.nome}">${c.nome}</td>`;
+      h += `<td style="font-weight:600;max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${c.nome}">${c.nome}</td>`;
       h += `<td><span style="background:${(tipoColors[tipo] || '#9ca3af')}22;color:${tipoColors[tipo] || '#9ca3af'};border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700">${tipo}</span></td>`;
+      h += `<td style="font-size:11px;color:var(--text2)">${IF[c.intake] || c.intake || ''}</td>`;
       h += `<td><span style="background:${stBg[c.st]};color:${stColor[c.st]};border-radius:12px;padding:3px 10px;font-size:11px;font-weight:700">${stLabel[c.st]}</span></td>`;
-      h += `<td style="font-size:13px;white-space:nowrap">${startStr}${futureNote}</td>`;
+      h += `<td style="font-size:13px;white-space:nowrap">${startStr}</td>`;
       h += `<td class="num">${c.iscrittiOA} <span style="color:var(--text3);font-size:11px">/ ${c.target}</span></td>`;
       h += `<td class="num" style="color:var(--green)">${fE(c.revenueOA)}</td>`;
-      h += `<td class="num">${c.costiProd > 0 ? fE(c.costiProd) : '<span style="color:var(--text3)">€0</span>'}${prodNote}</td>`;
+      h += `<td class="num">${c.costiProd > 0 ? fE(c.costiProd) : '<span style="color:var(--text3)">€0</span>'}</td>`;
       h += `<td class="num">${c.costiMktg > 0 ? fE(c.costiMktg) : '<span style="color:var(--text3)">€0</span>'}</td>`;
       h += `<td class="num" style="color:${mc};font-weight:700">${fE(c.margine)}</td>`;
       h += `<td class="num" style="color:${mc};font-weight:700">${c.margPct !== null ? c.margPct + '%' : '—'}</td>`;
       h += '</tr>';
     }
-    const snC = sN >= 0 ? 'var(--green)' : 'var(--red)';
-    h += `<tr class="row-sub"><td colspan="5" style="font-size:12px">Subtotale ${IF[intk] || intk}</td><td class="num">${rows.reduce((s, c) => s + c.iscrittiOA, 0)}</td><td class="num" style="color:var(--green)">${fE(sR)}</td><td class="num">${fE(sP)}</td><td class="num">${fE(sM)}</td><td class="num" style="color:${snC}">${fE(sN)}</td><td class="num" style="color:${snC}">${sR > 0 ? Math.round((sN / sR) * 100) + '%' : '—'}</td></tr>`;
-  }
-
-  h += plHeaders('TOTALE GENERALE');
-  const tNC = totNetto >= 0 ? 'var(--green)' : 'var(--red)';
-  h += `<tr class="row-tot"><td colspan="5">TOTALE GENERALE</td><td class="num">${enriched.reduce((s, c) => s + c.iscrittiOA, 0)}</td><td class="num" style="color:var(--green)">${fE(totRev)}</td><td class="num">${fE(totProd)}</td><td class="num">${fE(totMktgA)}</td><td class="num" style="color:${tNC}">${fE(totNetto)}</td><td class="num" style="color:${tNC}">${totRev > 0 ? Math.round((totNetto / totRev) * 100) + '%' : '—'}</td></tr>`;
-
-  if (orphanTotal > 0 && state.plFilter === 'all') {
-    const orphanEntries = Object.entries(orphanMktg).filter((e) => e[1] > 0).sort((a, b) => b[1] - a[1]);
-    if (orphanEntries.length > 0) {
-      const orphanDetail = orphanEntries.map((e) => e[0] + ' ' + fE(e[1])).join('  |  ');
-      h += `<tr style="background:var(--amber-l)"><td colspan="8" style="font-size:11px;color:var(--amber)">⚠ Mktg non allocato: <span style="color:var(--text3)">${orphanDetail}</span></td><td class="num" style="color:var(--amber);font-weight:700">${fE(Object.values(orphanMktg).reduce((s, v) => s + v, 0))}</td><td colspan="2"></td></tr>`;
+    const tNC = totNetto >= 0 ? 'var(--green)' : 'var(--red)';
+    h += `<tr class="row-tot"><td colspan="6">TOTALE (${sorted.length} edizioni)</td><td class="num">${enriched.reduce((s, c) => s + c.iscrittiOA, 0)}</td><td class="num" style="color:var(--green)">${fE(totRev)}</td><td class="num">${fE(totProd)}</td><td class="num">${fE(totMktgA)}</td><td class="num" style="color:${tNC}">${fE(totNetto)}</td><td class="num" style="color:${tNC}">${totRev > 0 ? Math.round((totNetto / totRev) * 100) + '%' : '—'}</td></tr>`;
+    h += '</tbody></table></div>';
+  } else {
+    h += '<div style="overflow-x:auto"><table class="mtable" style="min-width:900px"><tbody>';
+    const byIntake = {};
+    for (const c of enriched) {
+      const intk = c.intake || 'OTHER';
+      if (!byIntake[intk]) byIntake[intk] = [];
+      byIntake[intk].push(c);
     }
-    if (brandSpend > 0) {
-      h += `<tr style="background:var(--blue-l)"><td colspan="8" style="font-size:11px;color:var(--blue)">ℹ Brand/awareness spend (non allocabile a singolo corso)</td><td class="num" style="color:var(--blue);font-weight:700">${fE(brandSpend)}</td><td colspan="2"></td></tr>`;
+    const orderedIntakes = intakeOrder.filter((i) => byIntake[i]).concat(Object.keys(byIntake).filter((i) => !intakeOrder.includes(i)));
+
+    const plHeaders = (intk) =>
+      `<tr style="background:#ddd8d0"><td colspan="2" style="font-weight:700;color:var(--text1);font-size:13px">${IF[intk] || intk || ''}</td><td style="font-size:11px;font-weight:700;color:var(--text1)">Tipo</td><td style="font-size:11px;font-weight:700;color:var(--text1)">Stato</td><td style="font-size:11px;font-weight:700;color:var(--text1)">Start</td><td class="num" style="font-size:11px;font-weight:700;color:var(--text1)">Iscritti</td><td class="num" style="font-size:11px;font-weight:700;color:var(--text1)">Revenue</td><td class="num" style="font-size:11px;font-weight:700;color:var(--text1)">Produzione</td><td class="num" style="font-size:11px;font-weight:700;color:var(--text1)">Marketing</td><td class="num" style="font-size:11px;font-weight:700;color:var(--text1)">Margine</td><td class="num" style="font-size:11px;font-weight:700;color:var(--text1)">Marg %</td></tr>`;
+
+    for (const intk of orderedIntakes) {
+      const rows = byIntake[intk].sort((a, b) => b.margine - a.margine);
+      const sR = rows.reduce((s, c) => s + c.revenueOA, 0);
+      const sP = rows.reduce((s, c) => s + c.costiProd, 0);
+      const sM = rows.reduce((s, c) => s + c.costiMktg, 0);
+      const sN = sR - sP - sM;
+
+      h += plHeaders(intk);
+      for (const c of rows) {
+        const mc = c.margine >= 0 ? 'var(--green)' : 'var(--red)';
+        const tipo = (c.tipo || '').toUpperCase().substring(0, 2);
+        const days = dTS(c);
+        const startStr = c.startDate ? fDshort(c.startDate) : '—';
+        const futureNote = (c.st === 'future' && days > 0 && days < 999) ? ` <span style="font-size:11px;color:var(--text3)">(tra ${days}gg)</span>` : '';
+        const prodNote = !c.partito ? `<span style="font-size:10px;color:var(--text3);margin-left:4px">${c.st === 'future' ? 'proiettati' : 'non sost.'}</span>` : '';
+
+        h += '<tr>';
+        h += `<td style="font-family:var(--mono);font-size:12px;color:var(--text3)">${c.sig}</td>`;
+        h += `<td style="font-weight:600;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${c.nome}">${c.nome}</td>`;
+        h += `<td><span style="background:${(tipoColors[tipo] || '#9ca3af')}22;color:${tipoColors[tipo] || '#9ca3af'};border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700">${tipo}</span></td>`;
+        h += `<td><span style="background:${stBg[c.st]};color:${stColor[c.st]};border-radius:12px;padding:3px 10px;font-size:11px;font-weight:700">${stLabel[c.st]}</span></td>`;
+        h += `<td style="font-size:13px;white-space:nowrap">${startStr}${futureNote}</td>`;
+        h += `<td class="num">${c.iscrittiOA} <span style="color:var(--text3);font-size:11px">/ ${c.target}</span></td>`;
+        h += `<td class="num" style="color:var(--green)">${fE(c.revenueOA)}</td>`;
+        h += `<td class="num">${c.costiProd > 0 ? fE(c.costiProd) : '<span style="color:var(--text3)">€0</span>'}${prodNote}</td>`;
+        h += `<td class="num">${c.costiMktg > 0 ? fE(c.costiMktg) : '<span style="color:var(--text3)">€0</span>'}</td>`;
+        h += `<td class="num" style="color:${mc};font-weight:700">${fE(c.margine)}</td>`;
+        h += `<td class="num" style="color:${mc};font-weight:700">${c.margPct !== null ? c.margPct + '%' : '—'}</td>`;
+        h += '</tr>';
+      }
+      const snC = sN >= 0 ? 'var(--green)' : 'var(--red)';
+      h += `<tr class="row-sub"><td colspan="5" style="font-size:12px">Subtotale ${IF[intk] || intk}</td><td class="num">${rows.reduce((s, c) => s + c.iscrittiOA, 0)}</td><td class="num" style="color:var(--green)">${fE(sR)}</td><td class="num">${fE(sP)}</td><td class="num">${fE(sM)}</td><td class="num" style="color:${snC}">${fE(sN)}</td><td class="num" style="color:${snC}">${sR > 0 ? Math.round((sN / sR) * 100) + '%' : '—'}</td></tr>`;
     }
+
+    h += plHeaders('TOTALE GENERALE');
+    const tNC = totNetto >= 0 ? 'var(--green)' : 'var(--red)';
+    h += `<tr class="row-tot"><td colspan="5">TOTALE GENERALE</td><td class="num">${enriched.reduce((s, c) => s + c.iscrittiOA, 0)}</td><td class="num" style="color:var(--green)">${fE(totRev)}</td><td class="num">${fE(totProd)}</td><td class="num">${fE(totMktgA)}</td><td class="num" style="color:${tNC}">${fE(totNetto)}</td><td class="num" style="color:${tNC}">${totRev > 0 ? Math.round((totNetto / totRev) * 100) + '%' : '—'}</td></tr>`;
+
+    if (orphanTotal > 0 && state.plFilter === 'all') {
+      const orphanEntries = Object.entries(orphanMktg).filter((e) => e[1] > 0).sort((a, b) => b[1] - a[1]);
+      if (orphanEntries.length > 0) {
+        const orphanDetail = orphanEntries.map((e) => e[0] + ' ' + fE(e[1])).join('  |  ');
+        h += `<tr style="background:var(--amber-l)"><td colspan="8" style="font-size:11px;color:var(--amber)">⚠ Mktg non allocato: <span style="color:var(--text3)">${orphanDetail}</span></td><td class="num" style="color:var(--amber);font-weight:700">${fE(Object.values(orphanMktg).reduce((s, v) => s + v, 0))}</td><td colspan="2"></td></tr>`;
+      }
+      if (brandSpend > 0) {
+        h += `<tr style="background:var(--blue-l)"><td colspan="8" style="font-size:11px;color:var(--blue)">ℹ Brand/awareness spend (non allocabile a singolo corso)</td><td class="num" style="color:var(--blue);font-weight:700">${fE(brandSpend)}</td><td colspan="2"></td></tr>`;
+      }
+    }
+    h += '</tbody></table></div>';
   }
-  h += '</tbody></table></div>';
 
   // Corsi futuri — scenari
   const futuri = enriched.filter((c) => c.st === 'future');
@@ -209,9 +307,28 @@ export function attachPLHandlers() {
   const ct = $('pl-content');
   if (!ct) return;
   ct.addEventListener('click', (e) => {
-    const pill = e.target.closest('.filter-pill[data-pl-filter]');
-    if (!pill) return;
-    state.plFilter = pill.dataset.plFilter;
-    renderPL();
+    const filterPill = e.target.closest('.filter-pill[data-pl-filter]');
+    if (filterPill) {
+      state.plFilter = filterPill.dataset.plFilter;
+      renderPL();
+      return;
+    }
+    const viewPill = e.target.closest('.filter-pill[data-pl-view]');
+    if (viewPill) {
+      state.plViewMode = viewPill.dataset.plView;
+      renderPL();
+      return;
+    }
+    const sortTh = e.target.closest('th[data-pl-sort]');
+    if (sortTh) {
+      const key = sortTh.dataset.plSort;
+      if (state.plSortBy === key) {
+        state.plSortDir = state.plSortDir === 'asc' ? 'desc' : 'asc';
+      } else {
+        state.plSortBy = key;
+        state.plSortDir = (key === 'sig' || key === 'nome' || key === 'tipo' || key === 'intake' || key === 'stato' || key === 'start') ? 'asc' : 'desc';
+      }
+      renderPL();
+    }
   });
 }

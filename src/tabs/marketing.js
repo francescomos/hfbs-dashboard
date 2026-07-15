@@ -1,9 +1,52 @@
-import { state } from '../state.js?v=20260715';
-import { fE } from '../utils/format.js?v=20260715';
-import { nP } from '../utils/normalize.js?v=20260715';
-import { $ } from '../utils/dom.js?v=20260715';
-import { corsiForYear } from '../data/corsiForYear.js?v=20260715';
-import { buildDailyChart } from '../charts/dailyChart.js?v=20260715';
+import { state } from '../state.js?v=20260715b';
+import { fE } from '../utils/format.js?v=20260715b';
+import { nP } from '../utils/normalize.js?v=20260715b';
+import { $ } from '../utils/dom.js?v=20260715b';
+import { corsiForYear } from '../data/corsiForYear.js?v=20260715b';
+import { getRealSpend } from '../data/helpers.js?v=20260715b';
+import { buildDailyChart } from '../charts/dailyChart.js?v=20260715b';
+
+// Filter campaigns to only those matching products in the current year
+function campaignsForYear(list, spendKey) {
+  const cfg = state.DL?.Config_Corsi || [];
+  const yearProds = new Set();
+  cfg.forEach((c) => { if ((c.anno || '') === state.year && c.siglaProdotto) yearProds.add(nP(c.siglaProdotto)); });
+  const allProds = new Set();
+  cfg.forEach((c) => { if (c.siglaProdotto) allProds.add(nP(c.siglaProdotto)); });
+  // yearCount per prod
+  const ycCache = {};
+  const yc = (prod) => {
+    if (ycCache[prod] !== undefined) return ycCache[prod];
+    const years = new Set();
+    cfg.forEach((c) => { if (nP(c.siglaProdotto) === prod && c.anno) years.add(c.anno); });
+    ycCache[prod] = years.size || 1;
+    return ycCache[prod];
+  };
+  
+  let totalSpend = 0, totalLeads = 0, totalClicks = 0, totalImpr = 0;
+  list.forEach((c) => {
+    const s = (c.sigle || '').split(',').map((x) => nP(x.trim())).filter(Boolean);
+    const spend = parseFloat(c[spendKey] || c.spend || c.cost) || 0;
+    if (!spend) return;
+    let share = 0;
+    if (s.length === 0) {
+      // Unallocated: split evenly across years
+      share = spend / (Object.keys(state.DL?._yearCount || {}).length || 2);
+    } else {
+      s.forEach((sig) => {
+        if (yearProds.has(sig)) share += (spend / s.length) / yc(sig);
+      });
+    }
+    if (share > 0) {
+      const ratio = share / spend;
+      totalSpend += share;
+      totalLeads += Math.round((parseInt(c.leads) || 0) * ratio);
+      totalClicks += Math.round((parseInt(c.clicks) || 0) * ratio);
+      totalImpr += Math.round((parseInt(c.impressions) || 0) * ratio);
+    }
+  });
+  return { spend: totalSpend, leads: totalLeads, clicks: totalClicks, impressions: totalImpr };
+}
 
 export function renderMarketing() {
   const DL = state.DL;
@@ -17,19 +60,11 @@ export function renderMarketing() {
   const brevoContacts = DL.Brevo_Contacts || [];
   const corsi = corsiForYear();
 
-  let metaSpend = 0, metaLeads = 0, metaClicks = 0, metaImpr = 0;
-  mc.forEach((c) => {
-    metaSpend += parseFloat(c.spend) || 0;
-    metaLeads += parseInt(c.leads) || 0;
-    metaClicks += parseInt(c.clicks) || 0;
-    metaImpr += parseInt(c.impressions) || 0;
-  });
-  let gadsSpend = 0, gadsClicks = 0, gadsConv = 0;
-  gc.forEach((c) => {
-    gadsSpend += parseFloat(c.cost) || 0;
-    gadsClicks += parseInt(c.clicks) || 0;
-    gadsConv += parseFloat(c.conversions) || 0;
-  });
+  // Year-aware spend calculations
+  const metaYear = campaignsForYear(mc, 'spend');
+  const gadsYear = campaignsForYear(gc, 'cost');
+  const metaSpend = metaYear.spend, metaLeads = metaYear.leads, metaClicks = metaYear.clicks, metaImpr = metaYear.impressions;
+  const gadsSpend = gadsYear.spend, gadsClicks = gadsYear.clicks, gadsConv = gadsYear.leads;
   const totalSpend = metaSpend + gadsSpend;
   let ga4Sessions = 0;
   ga4p.forEach((p) => { ga4Sessions += parseInt(p.sessions) || 0; });

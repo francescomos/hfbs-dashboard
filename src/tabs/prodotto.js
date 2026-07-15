@@ -1,9 +1,9 @@
-import { state } from '../state.js?v=20260715';
-import { IF, TL, SC } from '../constants.js?v=20260715';
-import { fE, fEk, fD, fDshort } from '../utils/format.js?v=20260715';
-import { cSt, bC, dTS } from '../utils/normalize.js?v=20260715';
-import { $, escapeAttr } from '../utils/dom.js?v=20260715';
-import { corsiForYear } from '../data/corsiForYear.js?v=20260715';
+import { state } from '../state.js?v=20260715b';
+import { IF, TL, SC } from '../constants.js?v=20260715b';
+import { fE, fEk, fD, fDshort } from '../utils/format.js?v=20260715b';
+import { cSt, bC, dTS } from '../utils/normalize.js?v=20260715b';
+import { $, escapeAttr } from '../utils/dom.js?v=20260715b';
+import { corsiForYear } from '../data/corsiForYear.js?v=20260715b';
 import {
   getSpendForProd,
   getCampaignsForCorso,
@@ -11,16 +11,16 @@ import {
   getBrochureStats,
   calcRitardo,
   calcOverlapDetail,
-} from '../data/helpers.js?v=20260715';
+} from '../data/helpers.js?v=20260715b';
 import {
   getLastEdition,
   avgConversionDays,
   dropoutPct,
   noShowPct,
   countAlumniReturning,
-} from '../data/insights.js?v=20260715';
-import { buildDailyChart } from '../charts/dailyChart.js?v=20260715';
-import { drawFunnelChart, drawChannelsDonut, drawRevPerEdition } from '../charts/chartjs.js?v=20260715';
+} from '../data/insights.js?v=20260715b';
+import { buildDailyChart } from '../charts/dailyChart.js?v=20260715b';
+import { drawFunnelChart, drawChannelsDonut, drawRevPerEdition } from '../charts/chartjs.js?v=20260715b';
 
 export function populateProdSelect() {
   const corsi = corsiForYear();

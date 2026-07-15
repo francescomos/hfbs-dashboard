@@ -1,11 +1,11 @@
-import { state } from '../state.js?v=20260715';
-import { IF } from '../constants.js?v=20260715';
-import { fE } from '../utils/format.js?v=20260715';
-import { nP, dTS, cSt } from '../utils/normalize.js?v=20260715';
-import { corsiForYear } from './corsiForYear.js?v=20260715';
+import { state } from '../state.js?v=20260715b';
+import { IF } from '../constants.js?v=20260715b';
+import { fE } from '../utils/format.js?v=20260715b';
+import { nP, dTS, cSt } from '../utils/normalize.js?v=20260715b';
+import { corsiForYear } from './corsiForYear.js?v=20260715b';
 import {
   ZR_PCT_TARGET, ZR_MAX_DAYS, CPA_ALERT, NO_SHOW_ALERT_PCT,
-} from './thresholds.js?v=20260715';
+} from './thresholds.js?v=20260715b';
 
 /**
  * Suggerimenti automatici basati sullo stato dei corsi.
