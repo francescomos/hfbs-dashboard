@@ -328,7 +328,7 @@ button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
 
 .funnel{display:flex;align-items:flex-end;gap:4px;height:60px;padding-top:10px;border-top:1px solid var(--line-l)}
 .funnel-step{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}
-.funnel-bar{width:100%;border-radius:4px 4px 0 0;min-height:3px;transition:height .3s}
+.funnel-bar{width:100%;border-radius:4px 4px 0 0;min-height:3px;transition:height .3s;flex-shrink:0;flex-grow:0}
 .funnel-num{font-family:var(--mono);font-size:11px;font-weight:800;color:var(--ink);margin-top:5px}
 .funnel-lbl{font-size:9px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.04em;margin-top:1px;font-weight:700}
 
