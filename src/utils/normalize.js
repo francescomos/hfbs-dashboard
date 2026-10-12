@@ -1,4 +1,4 @@
-import { PA } from '../constants.js?v=20260727';
+import { PA } from '../constants.js?v=20260727b';
 
 export const nI = (c) => {
   if (!c) return '';
@@ -41,20 +41,20 @@ export const cSt = (c) => {
   return 'active';
 };
 
-// Color by enrollment milestones:
-// < breakeven → red, >= breakeven → amber/orange,
-// >= 12 → light green, >= 15 → green, >= 20 → dark green, >= 25 → gold
+// Color by enrollment milestones — coherent green gradient:
+// < breakeven → red, >= breakeven → amber,
+// >= 12 → sage, >= 15 → green, >= 20 → forest, >= 25 → gold
 export const bC = (pctOrCorso) => {
-  // Legacy: if called with just a number (pctTarget), use old logic
+  // Legacy: if called with just a number (pctTarget), map roughly
   if (typeof pctOrCorso === 'number') {
-    return pctOrCorso >= 100 ? '#b8860b'
-      : pctOrCorso >= 80 ? '#0d6e3e'
-      : pctOrCorso >= 60 ? 'var(--green)'
-      : pctOrCorso >= 48 ? '#86efac'
-      : pctOrCorso >= 30 ? 'var(--amber)'
-      : 'var(--red)';
+    const p = pctOrCorso;
+    if (p >= 100) return '#a67c00';
+    if (p >= 80) return '#1a6b42';
+    if (p >= 60) return '#2d8659';
+    if (p >= 48) return '#4a9e6e';
+    if (p >= 30) return 'var(--amber)';
+    return 'var(--red)';
   }
-  // New: receives full corso object
   const c = pctOrCorso;
   const iscritti = c.iscrittiOA || 0;
   const pricing = c.pricing || 0;
@@ -63,10 +63,10 @@ export const bC = (pctOrCorso) => {
   const bePrice = pricing - costoPerStudente;
   const breakeven = bePrice > 0 && costiFissi > 0 ? Math.ceil(costiFissi / bePrice) : 0;
 
-  if (iscritti >= 25) return '#b8860b';       // gold
-  if (iscritti >= 20) return '#0a5c34';       // very dark green
-  if (iscritti >= 15) return '#0d6e3e';       // dark green
-  if (iscritti >= 12) return '#86efac';       // light green
-  if (breakeven > 0 && iscritti >= breakeven) return 'var(--amber)';  // orange - past breakeven
-  return 'var(--red)';                        // red - below breakeven
+  if (iscritti >= 25) return '#a67c00';       // gold — target pieno
+  if (iscritti >= 20) return '#14532d';       // forest — quasi al target
+  if (iscritti >= 15) return '#1a6b42';       // deep green
+  if (iscritti >= 12) return '#2d8659';       // green — soglia minima OK
+  if (breakeven > 0 && iscritti >= breakeven) return 'var(--amber)';  // amber — copri i costi
+  return 'var(--red)';                        // red — sotto breakeven
 };

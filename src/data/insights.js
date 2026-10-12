@@ -1,11 +1,11 @@
-import { state } from '../state.js?v=20260727';
-import { IF } from '../constants.js?v=20260727';
-import { fE } from '../utils/format.js?v=20260727';
-import { nP, dTS, cSt } from '../utils/normalize.js?v=20260727';
-import { corsiForYear } from './corsiForYear.js?v=20260727';
+import { state } from '../state.js?v=20260727b';
+import { IF } from '../constants.js?v=20260727b';
+import { fE } from '../utils/format.js?v=20260727b';
+import { nP, dTS, cSt } from '../utils/normalize.js?v=20260727b';
+import { corsiForYear } from './corsiForYear.js?v=20260727b';
 import {
-  ZR_PCT_TARGET, ZR_MAX_DAYS, CPA_ALERT, NO_SHOW_ALERT_PCT,
-} from './thresholds.js?v=20260727';
+  ZR_MIN_ISCRITTI, ZR_MAX_DAYS, CPA_ALERT, NO_SHOW_ALERT_PCT,
+} from './thresholds.js?v=20260727b';
 
 /**
  * Suggerimenti automatici basati sullo stato dei corsi.
@@ -22,13 +22,13 @@ export function buildSuggestions() {
 
   const zr = corsi.filter((c) => {
     const d = dTS(c);
-    return c.pctTarget < ZR_PCT_TARGET && d > 0 && d <= ZR_MAX_DAYS;
+    return c.iscrittiOA < ZR_MIN_ISCRITTI && d > 0 && d <= ZR_MAX_DAYS;
   });
   if (zr.length > 0) {
     out.push({
       level: 'crit',
       title: `${zr.length} cors${zr.length > 1 ? 'i' : 'o'} in zona rossa`,
-      text: `<b>${zr.map((c) => c.nome + ' (' + (IF[c.intake] || c.intake) + ')').join(', ')}</b>: meno di ${ZR_MAX_DAYS} giorni al via e sotto il ${ZR_PCT_TARGET}% del target. Priorità massima: accelerare outbound, valutare early-bird o rinvio.`,
+      text: `<b>${zr.map((c) => c.nome + ' (' + (IF[c.intake] || c.intake) + ')').join(', ')}</b>: meno di ${ZR_MAX_DAYS} giorni al via e sotto i ${ZR_MIN_ISCRITTI} iscritti. Priorità massima: accelerare outbound, valutare early-bird o rinvio.`,
     });
   }
 

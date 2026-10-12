@@ -1,13 +1,13 @@
-import { state } from '../state.js?v=20260727';
-import { IF } from '../constants.js?v=20260727';
-import { fE, fEk, fD } from '../utils/format.js?v=20260727';
-import { dTS, cSt, bC } from '../utils/normalize.js?v=20260727';
-import { $ } from '../utils/dom.js?v=20260727';
-import { corsiForYear } from '../data/corsiForYear.js?v=20260727';
-import { getRealSpend, getActiveCampaignCount } from '../data/helpers.js?v=20260727';
-import { buildSuggestions, suggestCardHTML } from '../data/insights.js?v=20260727';
-import { drawRevenuePerIntake, drawIntakeDonut } from '../charts/chartjs.js?v=20260727';
-import { ZR_PCT_TARGET, ZR_MAX_DAYS } from '../data/thresholds.js?v=20260727';
+import { state } from '../state.js?v=20260727b';
+import { IF } from '../constants.js?v=20260727b';
+import { fE, fEk, fD } from '../utils/format.js?v=20260727b';
+import { dTS, cSt, bC } from '../utils/normalize.js?v=20260727b';
+import { $ } from '../utils/dom.js?v=20260727b';
+import { corsiForYear } from '../data/corsiForYear.js?v=20260727b';
+import { getRealSpend, getActiveCampaignCount } from '../data/helpers.js?v=20260727b';
+import { buildSuggestions, suggestCardHTML } from '../data/insights.js?v=20260727b';
+import { drawRevenuePerIntake, drawIntakeDonut } from '../charts/chartjs.js?v=20260727b';
+import { ZR_MIN_ISCRITTI, ZR_MAX_DAYS } from '../data/thresholds.js?v=20260727b';
 
 export function renderFilters(corsi) {
   const intakeSet = [...new Set(corsi.map((c) => c.intake).filter(Boolean))];
@@ -58,7 +58,7 @@ export function renderPanoramica(corsi) {
   const pt = tt > 0 ? Math.round((ti / tt) * 100) : 0;
   const rp = trt > 0 ? Math.round((tr / trt) * 100) : 0;
   const realMktgCost = getRealSpend();
-  const zr = v.filter((c) => c.pctTarget < ZR_PCT_TARGET && dTS(c) > 0 && dTS(c) <= ZR_MAX_DAYS);
+  const zr = v.filter((c) => c.iscrittiOA < ZR_MIN_ISCRITTI && dTS(c) > 0 && dTS(c) <= ZR_MAX_DAYS);
 
   const kpis = [
     { k: 'iscritti', hero: 'hero-brand', lbl: 'Iscritti (O&A)', val: ti.toLocaleString('it-IT'), sub: `target ${tt} · ${pt}%`, tip: 'Iscritti ufficiali O&A (somma aggregata del file O&A).' },
@@ -66,7 +66,7 @@ export function renderPanoramica(corsi) {
     { k: 'candidature', lbl: 'Candidature', val: (tgf + tbr).toLocaleString('it-IT'), sub: `${tgf} form · ${tbr} Brevo`, tip: 'Gravity Forms (candidatura) + deal Brevo totali.' },
     { k: 'colloqui', lbl: 'Colloqui', val: tc.toLocaleString('it-IT'), sub: `${tcp} fatti · ${tcf} futuri`, tip: 'Eventi Calendly totali. Include no-show e cancellati.' },
     { k: 'mktg', lbl: 'Speso Marketing', val: fEk(realMktgCost), sub: 'Meta+GAds campaigns', tip: 'Spend reale aggregato da Meta_Campaigns + GAds_Campaigns.' },
-    { k: 'zonarossa', lbl: 'Zona rossa', val: zr.length, sub: zr.length > 0 ? 'richiedono azione' : 'nessuna', tip: 'Corsi <45gg al via e <70% target. Azione urgente.' },
+    { k: 'zonarossa', lbl: 'Zona rossa', val: zr.length, sub: zr.length > 0 ? 'richiedono azione' : 'nessuna', tip: 'Corsi <45gg al via e <12 iscritti. Azione urgente.' },
   ];
 
   $('kpi-row').innerHTML = kpis.map((k) => {
@@ -111,10 +111,10 @@ export function renderPanoramica(corsi) {
   else if (state.sortBy === 'candidature') sorted.sort((a, b) => (b.gfCount + b.brevoDeals.length) - (a.gfCount + a.brevoDeals.length));
   else if (state.sortBy === 'colloqui') sorted.sort((a, b) => b.calAll - a.calAll);
   else if (state.sortBy === 'attivi') sorted = sorted.filter((c) => { const s = cSt(c); return s === 'selling' || s === 'active'; });
-  else if (state.sortBy === 'zonarossa') sorted = sorted.filter((c) => c.pctTarget < ZR_PCT_TARGET && dTS(c) > 0 && dTS(c) <= ZR_MAX_DAYS);
+  else if (state.sortBy === 'zonarossa') sorted = sorted.filter((c) => c.iscrittiOA < ZR_MIN_ISCRITTI && dTS(c) > 0 && dTS(c) <= ZR_MAX_DAYS);
   else sorted.sort((a, b) => {
-    const az = a.pctTarget < ZR_PCT_TARGET && dTS(a) > 0 && dTS(a) <= ZR_MAX_DAYS;
-    const bz = b.pctTarget < ZR_PCT_TARGET && dTS(b) > 0 && dTS(b) <= ZR_MAX_DAYS;
+    const az = a.iscrittiOA < ZR_MIN_ISCRITTI && dTS(a) > 0 && dTS(a) <= ZR_MAX_DAYS;
+    const bz = b.iscrittiOA < ZR_MIN_ISCRITTI && dTS(b) > 0 && dTS(b) <= ZR_MAX_DAYS;
     if (az !== bz) return az ? -1 : 1;
     return a.pctTarget - b.pctTarget;
   });
@@ -135,7 +135,7 @@ export function renderPanoramica(corsi) {
   }
   grid.innerHTML = sorted.map((c) => {
     const days = dTS(c);
-    const isZR = c.pctTarget < ZR_PCT_TARGET && days > 0 && days <= ZR_MAX_DAYS;
+    const isZR = c.iscrittiOA < ZR_MIN_ISCRITTI && days > 0 && days <= ZR_MAX_DAYS;
     const color = bC(c);
     const il = IF[c.intake] || c.edizione || c.intake;
     const sd = c.startDate ? fD(c.startDate) : '';

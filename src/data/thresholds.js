@@ -4,8 +4,8 @@
  * Ogni soglia ha una nota che spiega il criterio.
  */
 
-// Zona rossa: corsi con target <70% e <45 giorni al via = azione urgente.
-export const ZR_PCT_TARGET = 70;
+// Zona rossa: corsi con <12 iscritti e <45 giorni al via = azione urgente.
+export const ZR_MIN_ISCRITTI = 12;
 export const ZR_MAX_DAYS = 45;
 
 // Marketing CPA considerato "alto": oltre €1.000 per iscritto.
