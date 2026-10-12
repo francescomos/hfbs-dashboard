@@ -1,13 +1,13 @@
-import { state } from '../state.js?v=20260717';
-import { IF } from '../constants.js?v=20260717';
-import { fE, fEk, fD } from '../utils/format.js?v=20260717';
-import { dTS, cSt, bC } from '../utils/normalize.js?v=20260717';
-import { $ } from '../utils/dom.js?v=20260717';
-import { corsiForYear } from '../data/corsiForYear.js?v=20260717';
-import { getRealSpend, getActiveCampaignCount } from '../data/helpers.js?v=20260717';
-import { buildSuggestions, suggestCardHTML } from '../data/insights.js?v=20260717';
-import { drawRevenuePerIntake, drawIntakeDonut } from '../charts/chartjs.js?v=20260717';
-import { ZR_PCT_TARGET, ZR_MAX_DAYS } from '../data/thresholds.js?v=20260717';
+import { state } from '../state.js?v=20260727';
+import { IF } from '../constants.js?v=20260727';
+import { fE, fEk, fD } from '../utils/format.js?v=20260727';
+import { dTS, cSt, bC } from '../utils/normalize.js?v=20260727';
+import { $ } from '../utils/dom.js?v=20260727';
+import { corsiForYear } from '../data/corsiForYear.js?v=20260727';
+import { getRealSpend, getActiveCampaignCount } from '../data/helpers.js?v=20260727';
+import { buildSuggestions, suggestCardHTML } from '../data/insights.js?v=20260727';
+import { drawRevenuePerIntake, drawIntakeDonut } from '../charts/chartjs.js?v=20260727';
+import { ZR_PCT_TARGET, ZR_MAX_DAYS } from '../data/thresholds.js?v=20260727';
 
 export function renderFilters(corsi) {
   const intakeSet = [...new Set(corsi.map((c) => c.intake).filter(Boolean))];
@@ -136,7 +136,7 @@ export function renderPanoramica(corsi) {
   grid.innerHTML = sorted.map((c) => {
     const days = dTS(c);
     const isZR = c.pctTarget < ZR_PCT_TARGET && days > 0 && days <= ZR_MAX_DAYS;
-    const color = bC(c.pctTarget);
+    const color = bC(c);
     const il = IF[c.intake] || c.edizione || c.intake;
     const sd = c.startDate ? fD(c.startDate) : '';
     const dOk = c.iscrittiOA > 0 || c.target > 0;

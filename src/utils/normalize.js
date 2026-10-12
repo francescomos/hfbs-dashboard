@@ -1,4 +1,4 @@
-import { PA } from '../constants.js?v=20260717';
+import { PA } from '../constants.js?v=20260727';
 
 export const nI = (c) => {
   if (!c) return '';
@@ -41,9 +41,32 @@ export const cSt = (c) => {
   return 'active';
 };
 
-export const bC = (p) =>
-  p >= 90 ? 'var(--green)'
-    : p >= 80 ? '#86efac'
-    : p >= 70 ? 'var(--yellow)'
-    : p >= 60 ? 'var(--amber)'
-    : 'var(--red)';
+// Color by enrollment milestones:
+// < breakeven → red, >= breakeven → amber/orange,
+// >= 12 → light green, >= 15 → green, >= 20 → dark green, >= 25 → gold
+export const bC = (pctOrCorso) => {
+  // Legacy: if called with just a number (pctTarget), use old logic
+  if (typeof pctOrCorso === 'number') {
+    return pctOrCorso >= 100 ? '#b8860b'
+      : pctOrCorso >= 80 ? '#0d6e3e'
+      : pctOrCorso >= 60 ? 'var(--green)'
+      : pctOrCorso >= 48 ? '#86efac'
+      : pctOrCorso >= 30 ? 'var(--amber)'
+      : 'var(--red)';
+  }
+  // New: receives full corso object
+  const c = pctOrCorso;
+  const iscritti = c.iscrittiOA || 0;
+  const pricing = c.pricing || 0;
+  const costiFissi = c.costiFissi || 0;
+  const costoPerStudente = c.costoPerStudente || 0;
+  const bePrice = pricing - costoPerStudente;
+  const breakeven = bePrice > 0 && costiFissi > 0 ? Math.ceil(costiFissi / bePrice) : 0;
+
+  if (iscritti >= 25) return '#b8860b';       // gold
+  if (iscritti >= 20) return '#0a5c34';       // very dark green
+  if (iscritti >= 15) return '#0d6e3e';       // dark green
+  if (iscritti >= 12) return '#86efac';       // light green
+  if (breakeven > 0 && iscritti >= breakeven) return 'var(--amber)';  // orange - past breakeven
+  return 'var(--red)';                        // red - below breakeven
+};

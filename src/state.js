@@ -5,9 +5,16 @@ export const state = {
   sortBy: null,
   selectedEdition: null,
   plFilter: 'all',
+  plHideMargine: false,
+  plViewMode: 'grouped',
+  plSortBy: 'margine',
+  plSortDir: 'desc',
   qaExpanded: null,
   search: '',
-  year: '25/26',
+  prodViewMode: 'year',
+  b2gFilter: 'all',
+  b2b2cFilter: 'all',
+  year: '26/27',
 };
 
 export function setDL(data) {

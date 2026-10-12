@@ -1,8 +1,8 @@
-import { state } from '../state.js?v=20260717';
-import { IF } from '../constants.js?v=20260717';
-import { cSt } from '../utils/normalize.js?v=20260717';
-import { $ } from '../utils/dom.js?v=20260717';
-import { corsiForYear } from '../data/corsiForYear.js?v=20260717';
+import { state } from '../state.js?v=20260727';
+import { IF } from '../constants.js?v=20260727';
+import { cSt } from '../utils/normalize.js?v=20260727';
+import { $ } from '../utils/dom.js?v=20260727';
+import { corsiForYear } from '../data/corsiForYear.js?v=20260727';
 
 export function renderMonitor() {
   const DL = state.DL;

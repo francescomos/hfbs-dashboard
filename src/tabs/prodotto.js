@@ -1,9 +1,9 @@
-import { state } from '../state.js?v=20260717';
-import { IF, TL, SC } from '../constants.js?v=20260717';
-import { fE, fEk, fD, fDshort } from '../utils/format.js?v=20260717';
-import { cSt, bC, dTS } from '../utils/normalize.js?v=20260717';
-import { $, escapeAttr } from '../utils/dom.js?v=20260717';
-import { corsiForYear } from '../data/corsiForYear.js?v=20260717';
+import { state } from '../state.js?v=20260727';
+import { IF, TL, SC } from '../constants.js?v=20260727';
+import { fE, fEk, fD, fDshort } from '../utils/format.js?v=20260727';
+import { cSt, bC, dTS } from '../utils/normalize.js?v=20260727';
+import { $, escapeAttr } from '../utils/dom.js?v=20260727';
+import { corsiForYear } from '../data/corsiForYear.js?v=20260727';
 import {
   getSpendForProd,
   getCampaignsForCorso,
@@ -11,16 +11,16 @@ import {
   getBrochureStats,
   calcRitardo,
   calcOverlapDetail,
-} from '../data/helpers.js?v=20260717';
+} from '../data/helpers.js?v=20260727';
 import {
   getLastEdition,
   avgConversionDays,
   dropoutPct,
   noShowPct,
   countAlumniReturning,
-} from '../data/insights.js?v=20260717';
-import { buildDailyChart } from '../charts/dailyChart.js?v=20260717';
-import { drawFunnelChart, drawChannelsDonut, drawRevPerEdition } from '../charts/chartjs.js?v=20260717';
+} from '../data/insights.js?v=20260727';
+import { buildDailyChart } from '../charts/dailyChart.js?v=20260727';
+import { drawFunnelChart, drawChannelsDonut, drawRevPerEdition } from '../charts/chartjs.js?v=20260727';
 
 export function populateProdSelect() {
   const corsi = corsiForYear();
@@ -97,7 +97,7 @@ export function renderProdotto() {
 
   for (const c of corsi) {
     const il = IF[c.intake] || c.edizione || c.intake;
-    const color = bC(c.pctTarget);
+    const color = bC(c);
     const st = cSt(c);
     const stL = st === 'selling' ? 'In vendita' : st === 'active' ? 'In corso' : 'Concluso';
     const stC = st === 'selling' ? 'ed-status-selling' : st === 'active' ? 'ed-status-active' : 'ed-status-done';
