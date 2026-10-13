@@ -1,10 +1,10 @@
-import { state } from '../state.js?v=20261013';
-import { fE } from '../utils/format.js?v=20261013';
-import { nP } from '../utils/normalize.js?v=20261013';
-import { $ } from '../utils/dom.js?v=20261013';
-import { corsiForYear } from '../data/corsiForYear.js?v=20261013';
-import { getRealSpend, attributeCampaignToYear } from '../data/helpers.js?v=20261013';
-import { buildDailyChart } from '../charts/dailyChart.js?v=20261013';
+import { state } from '../state.js?v=20261013b';
+import { fE } from '../utils/format.js?v=20261013b';
+import { nP } from '../utils/normalize.js?v=20261013b';
+import { $ } from '../utils/dom.js?v=20261013b';
+import { corsiForYear } from '../data/corsiForYear.js?v=20261013b';
+import { getRealSpend, attributeCampaignToYear } from '../data/helpers.js?v=20261013b';
+import { buildDailyChart } from '../charts/dailyChart.js?v=20261013b';
 
 export function renderMarketing() {
   const DL = state.DL;
@@ -24,10 +24,14 @@ export function renderMarketing() {
     if ((c.anno || '') === state.year && c.siglaProdotto) yearProds.add(nP(c.siglaProdotto));
   });
 
-  // Filter campaigns: only those with at least one sigla matching a product in this year
+  // Filter campaigns: only those with explicit current-year intake in name
+  const yearIntakes = state.year === '26/27'
+    ? /FA26|FALL.?26|WI27|WINTER.?27|W27|SP27|SPRING.?27|SU27|SUMMER.?27/i
+    : /FA25|FALL.?25|WI26|WINTER.?26|W26|SP26|SPRING.?26|SU26|SUMMER.?26/i;
   const campaignMatchesYear = (c) => {
     const s = (c.sigle || '').split(',').map((x) => nP(x.trim())).filter(Boolean);
-    return s.some((sig) => yearProds.has(sig));
+    if (!s.some((sig) => yearProds.has(sig))) return false;
+    return yearIntakes.test(c.campaignName || '');
   };
   const mc = allMc.filter(campaignMatchesYear);
   const gc = allGc.filter(campaignMatchesYear);

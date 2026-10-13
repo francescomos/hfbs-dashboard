@@ -1,8 +1,8 @@
-import { state } from '../state.js?v=20261013';
-import { fE } from '../utils/format.js?v=20261013';
-import { $ } from '../utils/dom.js?v=20261013';
-import { corsiForYear } from '../data/corsiForYear.js?v=20261013';
-import { plStatus, computeOrphanMktg } from './pl.js?v=20261013';
+import { state } from '../state.js?v=20261013b';
+import { fE } from '../utils/format.js?v=20261013b';
+import { $ } from '../utils/dom.js?v=20261013b';
+import { corsiForYear } from '../data/corsiForYear.js?v=20261013b';
+import { plStatus, computeOrphanMktg } from './pl.js?v=20261013b';
 
 export function renderPLOP() {
   const DL = state.DL;
