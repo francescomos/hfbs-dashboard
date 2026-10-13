@@ -1,10 +1,10 @@
-import { state } from '../state.js?v=20261013c';
-import { SC, IF } from '../constants.js?v=20261013c';
-import { fE } from '../utils/format.js?v=20261013c';
-import { nP } from '../utils/normalize.js?v=20261013c';
-import { $ } from '../utils/dom.js?v=20261013c';
-import { getRealSpend } from '../data/helpers.js?v=20261013c';
-import { drawPerfChart } from '../charts/chartjs.js?v=20261013c';
+import { state } from '../state.js?v=20261013d';
+import { SC, IF } from '../constants.js?v=20261013d';
+import { fE } from '../utils/format.js?v=20261013d';
+import { nP } from '../utils/normalize.js?v=20261013d';
+import { $ } from '../utils/dom.js?v=20261013d';
+import { getRealSpend } from '../data/helpers.js?v=20261013d';
+import { drawPerfChart } from '../charts/chartjs.js?v=20261013d';
 
 export function renderInsights(corsi) {
   const DL = state.DL;

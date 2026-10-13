@@ -1,10 +1,10 @@
-import { state } from '../state.js?v=20261013c';
-import { fE } from '../utils/format.js?v=20261013c';
-import { nP } from '../utils/normalize.js?v=20261013c';
-import { $ } from '../utils/dom.js?v=20261013c';
-import { corsiForYear } from '../data/corsiForYear.js?v=20261013c';
-import { getRealSpend, attributeCampaignToYear } from '../data/helpers.js?v=20261013c';
-import { buildDailyChart } from '../charts/dailyChart.js?v=20261013c';
+import { state } from '../state.js?v=20261013d';
+import { fE } from '../utils/format.js?v=20261013d';
+import { nP } from '../utils/normalize.js?v=20261013d';
+import { $ } from '../utils/dom.js?v=20261013d';
+import { corsiForYear } from '../data/corsiForYear.js?v=20261013d';
+import { getRealSpend, attributeCampaignToYear } from '../data/helpers.js?v=20261013d';
+import { buildDailyChart } from '../charts/dailyChart.js?v=20261013d';
 
 export function renderMarketing() {
   const DL = state.DL;
@@ -24,43 +24,27 @@ export function renderMarketing() {
     if ((c.anno || '') === state.year && c.siglaProdotto) yearProds.add(nP(c.siglaProdotto));
   });
 
-  // Filter campaigns: only those with explicit current-year intake in name
+  // Filter campaigns: name must contain a current-year intake code
   const yearIntakes = state.year === '26/27'
     ? /FA26|FALL.?26|WI27|WINTER.?27|W27|SP27|SPRING.?27|SU27|SUMMER.?27/i
     : /FA25|FALL.?25|WI26|WINTER.?26|W26|SP26|SPRING.?26|SU26|SUMMER.?26/i;
-  const campaignMatchesYear = (c) => {
-    const s = (c.sigle || '').split(',').map((x) => nP(x.trim())).filter(Boolean);
-    if (!s.some((sig) => yearProds.has(sig))) return false;
-    return yearIntakes.test(c.campaignName || '');
-  };
+  const campaignMatchesYear = (c) => yearIntakes.test(c.campaignName || '');
   const mc = allMc.filter(campaignMatchesYear);
   const gc = allGc.filter(campaignMatchesYear);
 
-  // Year-aware spend
+  // Direct spend from filtered campaigns (name already guarantees year match)
   let metaSpend = 0, metaLeads = 0, metaClicks = 0, metaImpr = 0;
   mc.forEach((c) => {
-    const s = (c.sigle || '').split(',').map((x) => nP(x.trim())).filter(Boolean);
-    const spend = parseFloat(c.spend) || 0;
-    const share = attributeCampaignToYear(s, spend, c.campaignName);
-    if (share > 0) {
-      const ratio = spend > 0 ? share / spend : 0;
-      metaSpend += share;
-      metaLeads += Math.round((parseInt(c.leads) || 0) * ratio);
-      metaClicks += Math.round((parseInt(c.clicks) || 0) * ratio);
-      metaImpr += Math.round((parseInt(c.impressions) || 0) * ratio);
-    }
+    metaSpend += parseFloat(c.spend) || 0;
+    metaLeads += parseInt(c.leads) || 0;
+    metaClicks += parseInt(c.clicks) || 0;
+    metaImpr += parseInt(c.impressions) || 0;
   });
   let gadsSpend = 0, gadsClicks = 0, gadsConv = 0;
   gc.forEach((c) => {
-    const s = (c.sigle || '').split(',').map((x) => nP(x.trim())).filter(Boolean);
-    const spend = parseFloat(c.cost) || 0;
-    const share = attributeCampaignToYear(s, spend, c.campaignName);
-    if (share > 0) {
-      const ratio = spend > 0 ? share / spend : 0;
-      gadsSpend += share;
-      gadsClicks += Math.round((parseInt(c.clicks) || 0) * ratio);
-      gadsConv += Math.round((parseFloat(c.conversions) || 0) * ratio);
-    }
+    gadsSpend += parseFloat(c.cost) || 0;
+    gadsClicks += parseInt(c.clicks) || 0;
+    gadsConv += parseFloat(c.conversions) || 0;
   });
   const totalSpend = metaSpend + gadsSpend;
   const ga4year = ga4p.filter((p) => p.sigla && yearProds.has(nP(p.sigla)));
@@ -87,22 +71,25 @@ export function renderMarketing() {
   h += '</div>';
 
   // Ranking + Top pages
-  const ranked = mc.filter((c) => (parseInt(c.leads) || 0) > 0).sort((a, b) => (parseFloat(a.cpl) || 999) - (parseFloat(b.cpl) || 999));
+  const ranked = [...mc, ...gc.map((g) => ({...g, spend: g.cost, campaignName: g.campaignName, sigle: g.sigle, leads: g.conversions, status: g.status === 'ENABLED' ? 'ACTIVE' : g.status, platform: 'Google'}))].sort((a, b) => (parseFloat(b.spend) || 0) - (parseFloat(a.spend) || 0));
   h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">';
-  h += '<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px"><div class="prod-section-title">Ranking campagne Meta per CPL</div>';
+  h += '<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px"><div class="prod-section-title">Campagne ' + state.year + '</div>';
   if (ranked.length) {
-    h += '<table class="mtable"><thead><tr><th>Campagna</th><th>Corso</th><th class="num">Stato</th><th class="num">Spend</th><th class="num">Lead</th><th class="num">CPL</th></tr></thead><tbody>';
+    h += '<table class="mtable"><thead><tr><th>Campagna</th><th>Piattaforma</th><th>Corso</th><th class="num">Stato</th><th class="num">Spend</th><th class="num">Lead</th><th class="num">CPL</th></tr></thead><tbody>';
     ranked.forEach((c) => {
-      const cpl = parseFloat(c.cpl);
-      const col = cpl < 20 ? 'var(--green)' : cpl < 40 ? 'var(--amber)' : 'var(--red)';
+      const spend = parseFloat(c.spend) || 0;
+      const leads = parseInt(c.leads) || 0;
+      const cpl = leads > 0 ? Math.round(spend / leads) : 0;
+      const col = leads === 0 ? 'var(--text3)' : cpl < 20 ? 'var(--green)' : cpl < 40 ? 'var(--amber)' : 'var(--red)';
       const stBadge = c.status === 'ACTIVE'
         ? '<span style="background:var(--green-l);color:var(--green);padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700">ATTIVA</span>'
         : '<span style="background:var(--bg);color:var(--text3);padding:2px 6px;border-radius:4px;font-size:10px">PAUSA</span>';
-      h += `<tr><td style="font-size:12px">${c.campaignName.substring(0, 35)}</td><td style="font-family:var(--mono);font-size:11px">${c.sigle || '—'}</td><td>${stBadge}</td><td class="num">${fE(parseFloat(c.spend))}</td><td class="num">${c.leads}</td><td class="num" style="color:${col};font-weight:700">${fE(cpl)}</td></tr>`;
+      const platform = c.platform || 'Meta';
+      h += `<tr><td style="font-size:12px">${(c.campaignName || '').substring(0, 40)}</td><td style="font-size:11px;color:var(--text3)">${platform}</td><td style="font-family:var(--mono);font-size:11px">${c.sigle || '—'}</td><td>${stBadge}</td><td class="num">${fE(spend)}</td><td class="num">${leads || '—'}</td><td class="num" style="color:${col};font-weight:700">${leads > 0 ? fE(cpl) : '—'}</td></tr>`;
     });
     h += '</tbody></table>';
   } else {
-    h += '<div style="font-size:13px;color:var(--text3)">Nessuna campagna con lead</div>';
+    h += '<div style="font-size:13px;color:var(--text3)">Nessuna campagna per questo anno</div>';
   }
   h += '</div>';
 

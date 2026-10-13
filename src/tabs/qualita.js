@@ -1,7 +1,7 @@
-import { state } from '../state.js?v=20261013c';
-import { fD } from '../utils/format.js?v=20261013c';
-import { $, escapeAttr } from '../utils/dom.js?v=20261013c';
-import { corsiForYear } from '../data/corsiForYear.js?v=20261013c';
+import { state } from '../state.js?v=20261013d';
+import { fD } from '../utils/format.js?v=20261013d';
+import { $, escapeAttr } from '../utils/dom.js?v=20261013d';
+import { corsiForYear } from '../data/corsiForYear.js?v=20261013d';
 
 const scoreColor = (v) => (v >= 4.5 ? 'var(--mint-deep)' : v >= 4 ? 'var(--mint-2)' : v >= 3.5 ? 'var(--amber-deep)' : 'var(--alert-2)');
 const stars = (v) => '★★★★★'.substring(0, Math.round(v)) + '☆☆☆☆☆'.substring(0, 5 - Math.round(v));

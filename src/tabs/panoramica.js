@@ -1,13 +1,13 @@
-import { state } from '../state.js?v=20261013c';
-import { IF } from '../constants.js?v=20261013c';
-import { fE, fEk, fD } from '../utils/format.js?v=20261013c';
-import { dTS, cSt, bC } from '../utils/normalize.js?v=20261013c';
-import { $ } from '../utils/dom.js?v=20261013c';
-import { corsiForYear } from '../data/corsiForYear.js?v=20261013c';
-import { getRealSpend, getActiveCampaignCount } from '../data/helpers.js?v=20261013c';
-import { buildSuggestions, suggestCardHTML } from '../data/insights.js?v=20261013c';
-import { drawRevenuePerIntake, drawIntakeDonut } from '../charts/chartjs.js?v=20261013c';
-import { ZR_MIN_ISCRITTI, ZR_MAX_DAYS } from '../data/thresholds.js?v=20261013c';
+import { state } from '../state.js?v=20261013d';
+import { IF } from '../constants.js?v=20261013d';
+import { fE, fEk, fD } from '../utils/format.js?v=20261013d';
+import { dTS, cSt, bC } from '../utils/normalize.js?v=20261013d';
+import { $ } from '../utils/dom.js?v=20261013d';
+import { corsiForYear } from '../data/corsiForYear.js?v=20261013d';
+import { getRealSpend, getActiveCampaignCount } from '../data/helpers.js?v=20261013d';
+import { buildSuggestions, suggestCardHTML } from '../data/insights.js?v=20261013d';
+import { drawRevenuePerIntake, drawIntakeDonut } from '../charts/chartjs.js?v=20261013d';
+import { ZR_MIN_ISCRITTI, ZR_MAX_DAYS } from '../data/thresholds.js?v=20261013d';
 
 export function renderFilters(corsi) {
   const intakeSet = [...new Set(corsi.map((c) => c.intake).filter(Boolean))];
