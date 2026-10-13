@@ -1,24 +1,38 @@
-import { state } from '../state.js?v=20260727b';
-import { fE } from '../utils/format.js?v=20260727b';
-import { nP } from '../utils/normalize.js?v=20260727b';
-import { $ } from '../utils/dom.js?v=20260727b';
-import { corsiForYear } from '../data/corsiForYear.js?v=20260727b';
-import { getRealSpend, attributeCampaignToYear } from '../data/helpers.js?v=20260727b';
-import { buildDailyChart } from '../charts/dailyChart.js?v=20260727b';
+import { state } from '../state.js?v=20260727c';
+import { fE } from '../utils/format.js?v=20260727c';
+import { nP } from '../utils/normalize.js?v=20260727c';
+import { $ } from '../utils/dom.js?v=20260727c';
+import { corsiForYear } from '../data/corsiForYear.js?v=20260727c';
+import { getRealSpend, attributeCampaignToYear } from '../data/helpers.js?v=20260727c';
+import { buildDailyChart } from '../charts/dailyChart.js?v=20260727c';
 
 export function renderMarketing() {
   const DL = state.DL;
   if (!DL) return;
   const ct = $('marketing-content');
 
-  const mc = DL.Meta_Campaigns || [];
-  const gc = DL.GAds_Campaigns || [];
+  const allMc = DL.Meta_Campaigns || [];
+  const allGc = DL.GAds_Campaigns || [];
   const ga4p = DL.GA4_Pages || [];
   const mcd = DL.Meta_Campaign_Daily || [];
   const brevoContacts = DL.Brevo_Contacts || [];
   const corsi = corsiForYear();
 
-  // Year-aware spend — uses same attributeCampaignToYear as Panoramica and P&L
+  // Build set of product codes for current year
+  const yearProds = new Set();
+  (DL.Config_Corsi || []).forEach((c) => {
+    if ((c.anno || '') === state.year && c.siglaProdotto) yearProds.add(nP(c.siglaProdotto));
+  });
+
+  // Filter campaigns: only those with at least one sigla matching a product in this year
+  const campaignMatchesYear = (c) => {
+    const s = (c.sigle || '').split(',').map((x) => nP(x.trim())).filter(Boolean);
+    return s.some((sig) => yearProds.has(sig));
+  };
+  const mc = allMc.filter(campaignMatchesYear);
+  const gc = allGc.filter(campaignMatchesYear);
+
+  // Year-aware spend
   let metaSpend = 0, metaLeads = 0, metaClicks = 0, metaImpr = 0;
   mc.forEach((c) => {
     const s = (c.sigle || '').split(',').map((x) => nP(x.trim())).filter(Boolean);
