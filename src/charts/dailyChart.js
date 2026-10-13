@@ -1,4 +1,4 @@
-import { nP } from '../utils/normalize.js?v=20260727c';
+import { nP } from '../utils/normalize.js?v=20260727d';
 
 export function buildDailyChart(mcd, prodFilter, courseStartDate) {
   const byDate = {};

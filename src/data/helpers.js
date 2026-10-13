@@ -1,6 +1,6 @@
-import { state } from '../state.js?v=20260727c';
-import { nP } from '../utils/normalize.js?v=20260727c';
-import { buildCorsi } from './buildCorsi.js?v=20260727c';
+import { state } from '../state.js?v=20260727d';
+import { nP } from '../utils/normalize.js?v=20260727d';
+import { buildCorsi } from './buildCorsi.js?v=20260727d';
 
 // Build set of product codes for the currently selected year
 function prodsForCurrentYear() {
@@ -39,17 +39,60 @@ function numAcademicYears() {
   return years.size || 1;
 }
 
+// Detect which academic year a campaign name refers to
+// e.g. "Ai superpower - winter26" → '25/26', "FRD-PM-FA26" → '26/27'
+function detectYearFromName(campaignName) {
+  if (!campaignName) return null;
+  const n = campaignName.toUpperCase();
+  // Map intake patterns to academic years
+  const patterns = [
+    // 25/26
+    [/FA25|FALL.?25/,     '25/26'],
+    [/WI26|WINTER.?26|W26/, '25/26'],
+    [/SP26|SPRING.?26/,   '25/26'],
+    [/SU26|SUMMER.?26/,   '25/26'],
+    // 26/27
+    [/FA26|FALL.?26/,     '26/27'],
+    [/WI27|WINTER.?27|W27/, '26/27'],
+    [/SP27|SPRING.?27/,   '26/27'],
+    [/SU27|SUMMER.?27/,   '26/27'],
+    // 24/25
+    [/FA24|FALL.?24/,     '24/25'],
+    [/WI25|WINTER.?25|W25/, '24/25'],
+    [/SP25|SPRING.?25/,   '24/25'],
+    [/SU25|SUMMER.?25/,   '24/25'],
+  ];
+  for (const [rx, year] of patterns) {
+    if (rx.test(n)) return year;
+  }
+  return null; // ambiguous
+}
+
 // Single source of truth for year-aware campaign spend attribution
-export function attributeCampaignToYear(sigle, spend) {
+// Now uses campaign name to detect year when possible
+export function attributeCampaignToYear(sigle, spend, campaignName) {
   if (!spend) return 0;
   const yearProds = prodsForCurrentYear();
   const ap = allProds();
   const ny = numAcademicYears();
+  const currentYear = state.year;
 
-  if (!sigle.length) {
-    // No sigla at all → split across all years
-    return spend / ny;
+  // 1. Try to detect year from campaign name
+  const detectedYear = detectYearFromName(campaignName);
+  if (detectedYear) {
+    // Campaign clearly belongs to a specific year
+    if (detectedYear !== currentYear) return 0;
+    // It's for this year — count full spend (for matching products)
+    if (sigle.length) {
+      let share = 0;
+      sigle.forEach((sig) => { if (yearProds.has(sig)) share += spend / sigle.length; });
+      return share > 0 ? share : 0;
+    }
+    return spend;
   }
+
+  // 2. No year detected in name — use product matching with split
+  if (!sigle.length) return spend / ny;
 
   let share = 0;
   let anyMatchedAnyYear = false;
@@ -61,9 +104,7 @@ export function attributeCampaignToYear(sigle, spend) {
   });
 
   if (share > 0) return share;
-  // Matched products but none in current year → 0
   if (anyMatchedAnyYear) return 0;
-  // No product match at all (brand/orphan) → split across years
   return spend / ny;
 }
 
@@ -73,11 +114,11 @@ export function getRealSpend() {
   let total = 0;
   (DL.Meta_Campaigns || []).forEach((c) => {
     const s = (c.sigle || '').split(',').map((x) => nP(x.trim())).filter(Boolean);
-    total += attributeCampaignToYear(s, parseFloat(c.spend) || 0);
+    total += attributeCampaignToYear(s, parseFloat(c.spend) || 0, c.campaignName);
   });
   (DL.GAds_Campaigns || []).forEach((c) => {
     const s = (c.sigle || '').split(',').map((x) => nP(x.trim())).filter(Boolean);
-    total += attributeCampaignToYear(s, parseFloat(c.cost) || 0);
+    total += attributeCampaignToYear(s, parseFloat(c.cost) || 0, c.campaignName);
   });
   return total;
 }

@@ -1,10 +1,10 @@
-import { state } from '../state.js?v=20260727c';
-import { IF, AY, BRAND_SIGLE } from '../constants.js?v=20260727c';
-import { fE, fDshort } from '../utils/format.js?v=20260727c';
-import { nP, dTS } from '../utils/normalize.js?v=20260727c';
-import { $ } from '../utils/dom.js?v=20260727c';
-import { corsiForYear } from '../data/corsiForYear.js?v=20260727c';
-import { getSpendForProd, getRealSpend, attributeCampaignToYear } from '../data/helpers.js?v=20260727c';
+import { state } from '../state.js?v=20260727d';
+import { IF, AY, BRAND_SIGLE } from '../constants.js?v=20260727d';
+import { fE, fDshort } from '../utils/format.js?v=20260727d';
+import { nP, dTS } from '../utils/normalize.js?v=20260727d';
+import { $ } from '../utils/dom.js?v=20260727d';
+import { corsiForYear } from '../data/corsiForYear.js?v=20260727d';
+import { getSpendForProd, getRealSpend, attributeCampaignToYear } from '../data/helpers.js?v=20260727d';
 
 export function plStatus(c) {
   const days = dTS(c);
@@ -26,7 +26,7 @@ export function computeOrphanMktg(corsi) {
       const spend = parseFloat(c[spendKey]) || 0;
       if (spend <= 0) return;
       if (s.some((sig) => corsiProds.has(sig))) return;
-      const share = attributeCampaignToYear(s, spend);
+      const share = attributeCampaignToYear(s, spend, c.campaignName);
       if (share <= 0) return;
       if (s.some((sig) => BRAND_SIGLE[sig])) {
         brandSpend += share;

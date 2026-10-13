@@ -1,10 +1,10 @@
-import { state } from '../state.js?v=20260727c';
-import { fE } from '../utils/format.js?v=20260727c';
-import { nP } from '../utils/normalize.js?v=20260727c';
-import { $ } from '../utils/dom.js?v=20260727c';
-import { corsiForYear } from '../data/corsiForYear.js?v=20260727c';
-import { getRealSpend, attributeCampaignToYear } from '../data/helpers.js?v=20260727c';
-import { buildDailyChart } from '../charts/dailyChart.js?v=20260727c';
+import { state } from '../state.js?v=20260727d';
+import { fE } from '../utils/format.js?v=20260727d';
+import { nP } from '../utils/normalize.js?v=20260727d';
+import { $ } from '../utils/dom.js?v=20260727d';
+import { corsiForYear } from '../data/corsiForYear.js?v=20260727d';
+import { getRealSpend, attributeCampaignToYear } from '../data/helpers.js?v=20260727d';
+import { buildDailyChart } from '../charts/dailyChart.js?v=20260727d';
 
 export function renderMarketing() {
   const DL = state.DL;
@@ -37,7 +37,7 @@ export function renderMarketing() {
   mc.forEach((c) => {
     const s = (c.sigle || '').split(',').map((x) => nP(x.trim())).filter(Boolean);
     const spend = parseFloat(c.spend) || 0;
-    const share = attributeCampaignToYear(s, spend);
+    const share = attributeCampaignToYear(s, spend, c.campaignName);
     if (share > 0) {
       const ratio = spend > 0 ? share / spend : 0;
       metaSpend += share;
@@ -50,7 +50,7 @@ export function renderMarketing() {
   gc.forEach((c) => {
     const s = (c.sigle || '').split(',').map((x) => nP(x.trim())).filter(Boolean);
     const spend = parseFloat(c.cost) || 0;
-    const share = attributeCampaignToYear(s, spend);
+    const share = attributeCampaignToYear(s, spend, c.campaignName);
     if (share > 0) {
       const ratio = spend > 0 ? share / spend : 0;
       gadsSpend += share;
