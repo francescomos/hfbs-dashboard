@@ -1,10 +1,10 @@
-import { state } from '../state.js?v=20260727d';
-import { fE } from '../utils/format.js?v=20260727d';
-import { nP } from '../utils/normalize.js?v=20260727d';
-import { $ } from '../utils/dom.js?v=20260727d';
-import { corsiForYear } from '../data/corsiForYear.js?v=20260727d';
-import { getRealSpend, attributeCampaignToYear } from '../data/helpers.js?v=20260727d';
-import { buildDailyChart } from '../charts/dailyChart.js?v=20260727d';
+import { state } from '../state.js?v=20261013';
+import { fE } from '../utils/format.js?v=20261013';
+import { nP } from '../utils/normalize.js?v=20261013';
+import { $ } from '../utils/dom.js?v=20261013';
+import { corsiForYear } from '../data/corsiForYear.js?v=20261013';
+import { getRealSpend, attributeCampaignToYear } from '../data/helpers.js?v=20261013';
+import { buildDailyChart } from '../charts/dailyChart.js?v=20261013';
 
 export function renderMarketing() {
   const DL = state.DL;

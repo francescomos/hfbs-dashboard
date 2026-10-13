@@ -1,10 +1,10 @@
-import { state } from '../state.js?v=20260727d';
-import { IF, AY, BRAND_SIGLE } from '../constants.js?v=20260727d';
-import { fE, fDshort } from '../utils/format.js?v=20260727d';
-import { nP, dTS } from '../utils/normalize.js?v=20260727d';
-import { $ } from '../utils/dom.js?v=20260727d';
-import { corsiForYear } from '../data/corsiForYear.js?v=20260727d';
-import { getSpendForProd, getRealSpend, attributeCampaignToYear } from '../data/helpers.js?v=20260727d';
+import { state } from '../state.js?v=20261013';
+import { IF, AY, BRAND_SIGLE } from '../constants.js?v=20261013';
+import { fE, fDshort } from '../utils/format.js?v=20261013';
+import { nP, dTS } from '../utils/normalize.js?v=20261013';
+import { $ } from '../utils/dom.js?v=20261013';
+import { corsiForYear } from '../data/corsiForYear.js?v=20261013';
+import { getSpendForProd, getRealSpend, attributeCampaignToYear } from '../data/helpers.js?v=20261013';
 
 export function plStatus(c) {
   const days = dTS(c);

@@ -1,19 +1,19 @@
-import { STORAGE_KEY, DEFAULT_DATALAKE_URL } from './config.js?v=20260727d';
-import { state, clearCorsiCache } from './state.js?v=20260727d';
-import { AY_KEYS, AY, IF } from './constants.js?v=20260727d';
-import { $ } from './utils/dom.js?v=20260727d';
-import { fetchDatalake, getDatalakeUrl, saveDatalakeUrl, updateLastRefreshLabel } from './data/fetch.js?v=20260727d';
-import { corsiForYear } from './data/corsiForYear.js?v=20260727d';
+import { STORAGE_KEY, DEFAULT_DATALAKE_URL } from './config.js?v=20261013';
+import { state, clearCorsiCache } from './state.js?v=20261013';
+import { AY_KEYS, AY, IF } from './constants.js?v=20261013';
+import { $ } from './utils/dom.js?v=20261013';
+import { fetchDatalake, getDatalakeUrl, saveDatalakeUrl, updateLastRefreshLabel } from './data/fetch.js?v=20261013';
+import { corsiForYear } from './data/corsiForYear.js?v=20261013';
 import {
   renderPanoramica, renderFilters, attachPanoramicaHandlers, setSearch,
-} from './tabs/panoramica.js?v=20260727d';
-import { populateProdSelect, renderProdotto, attachProdottoHandlers } from './tabs/prodotto.js?v=20260727d';
-import { renderMarketing } from './tabs/marketing.js?v=20260727d';
-import { renderInsights } from './tabs/insights.js?v=20260727d';
-import { renderQualita, attachQualitaHandlers } from './tabs/qualita.js?v=20260727d';
-import { renderPL, attachPLHandlers } from './tabs/pl.js?v=20260727d';
-import { renderPLOP } from './tabs/plop.js?v=20260727d';
-import { renderMonitor } from './tabs/monitor.js?v=20260727d';
+} from './tabs/panoramica.js?v=20261013';
+import { populateProdSelect, renderProdotto, attachProdottoHandlers } from './tabs/prodotto.js?v=20261013';
+import { renderMarketing } from './tabs/marketing.js?v=20261013';
+import { renderInsights } from './tabs/insights.js?v=20261013';
+import { renderQualita, attachQualitaHandlers } from './tabs/qualita.js?v=20261013';
+import { renderPL, attachPLHandlers } from './tabs/pl.js?v=20261013';
+import { renderPLOP } from './tabs/plop.js?v=20261013';
+import { renderMonitor } from './tabs/monitor.js?v=20261013';
 
 function renderYearSelector() {
   const el = $('year-selector');

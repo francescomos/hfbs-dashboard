@@ -1,6 +1,6 @@
-import { state } from '../state.js?v=20260727d';
-import { nP } from '../utils/normalize.js?v=20260727d';
-import { buildCorsi } from './buildCorsi.js?v=20260727d';
+import { state } from '../state.js?v=20261013';
+import { nP } from '../utils/normalize.js?v=20261013';
+import { buildCorsi } from './buildCorsi.js?v=20261013';
 
 // Build set of product codes for the currently selected year
 function prodsForCurrentYear() {
@@ -91,21 +91,9 @@ export function attributeCampaignToYear(sigle, spend, campaignName) {
     return spend;
   }
 
-  // 2. No year detected in name — use product matching with split
-  if (!sigle.length) return spend / ny;
-
-  let share = 0;
-  let anyMatchedAnyYear = false;
-  sigle.forEach((sig) => {
-    if (ap.has(sig)) anyMatchedAnyYear = true;
-    if (yearProds.has(sig)) {
-      share += (spend / sigle.length) / yearCountForProd(sig);
-    }
-  });
-
-  if (share > 0) return share;
-  if (anyMatchedAnyYear) return 0;
-  return spend / ny;
+  // 2. No year detected in name — campaign is from a previous cycle.
+  //    Only campaigns with explicit current-year intake codes count.
+  return 0;
 }
 
 export function getRealSpend() {
