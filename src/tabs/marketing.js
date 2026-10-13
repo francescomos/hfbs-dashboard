@@ -1,10 +1,10 @@
-import { state } from '../state.js?v=20261013b';
-import { fE } from '../utils/format.js?v=20261013b';
-import { nP } from '../utils/normalize.js?v=20261013b';
-import { $ } from '../utils/dom.js?v=20261013b';
-import { corsiForYear } from '../data/corsiForYear.js?v=20261013b';
-import { getRealSpend, attributeCampaignToYear } from '../data/helpers.js?v=20261013b';
-import { buildDailyChart } from '../charts/dailyChart.js?v=20261013b';
+import { state } from '../state.js?v=20261013c';
+import { fE } from '../utils/format.js?v=20261013c';
+import { nP } from '../utils/normalize.js?v=20261013c';
+import { $ } from '../utils/dom.js?v=20261013c';
+import { corsiForYear } from '../data/corsiForYear.js?v=20261013c';
+import { getRealSpend, attributeCampaignToYear } from '../data/helpers.js?v=20261013c';
+import { buildDailyChart } from '../charts/dailyChart.js?v=20261013c';
 
 export function renderMarketing() {
   const DL = state.DL;
@@ -63,8 +63,9 @@ export function renderMarketing() {
     }
   });
   const totalSpend = metaSpend + gadsSpend;
+  const ga4year = ga4p.filter((p) => p.sigla && yearProds.has(nP(p.sigla)));
   let ga4Sessions = 0;
-  ga4p.forEach((p) => { ga4Sessions += parseInt(p.sessions) || 0; });
+  ga4year.forEach((p) => { ga4Sessions += parseInt(p.sessions) || 0; });
   const metaCPL = metaLeads > 0 ? Math.round(metaSpend / metaLeads) : 0;
   const metaActive = mc.filter((c) => c.status === 'ACTIVE').length;
   const gadsActive = gc.filter((c) => c.status === 'ENABLED').length;
@@ -74,7 +75,7 @@ export function renderMarketing() {
     + `<div class="kpi"><div class="kpi-label">Lead Meta</div><div class="kpi-value" style="color:var(--blue)">${metaLeads}</div><div class="kpi-sub">CPL medio ${fE(metaCPL)}</div></div>`
     + `<div class="kpi"><div class="kpi-label">Campagne attive</div><div class="kpi-value" style="color:var(--green)">${metaActive + gadsActive}</div><div class="kpi-sub">Meta ${metaActive}  |  Google ${gadsActive}</div></div>`
     + `<div class="kpi"><div class="kpi-label">Click totali</div><div class="kpi-value">${(metaClicks + gadsClicks).toLocaleString('it-IT')}</div><div class="kpi-sub">Meta ${metaClicks.toLocaleString('it-IT')}  |  Google ${gadsClicks.toLocaleString('it-IT')}</div></div>`
-    + `<div class="kpi"><div class="kpi-label">Sessioni sito</div><div class="kpi-value" style="color:var(--purple)">${ga4Sessions.toLocaleString('it-IT')}</div><div class="kpi-sub">${ga4p.length} pagine tracciate</div></div></div>`;
+    + `<div class="kpi"><div class="kpi-label">Sessioni sito</div><div class="kpi-value" style="color:var(--purple)">${ga4Sessions.toLocaleString('it-IT')}</div><div class="kpi-sub">${ga4year.length} pagine corso</div></div></div>`;
 
   // 3 card
   h += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">';
@@ -82,7 +83,7 @@ export function renderMarketing() {
   h += `<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px"><div class="prod-section-title">Meta Ads</div><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px"><div><div style="font-size:12px;color:var(--text3)">Speso</div><div style="font-family:var(--mono);font-size:20px;font-weight:700">${fE(metaSpend)}</div></div><div><div style="font-size:12px;color:var(--text3)">Click</div><div style="font-family:var(--mono);font-size:20px;font-weight:700">${metaClicks.toLocaleString('it-IT')}</div></div><div><div style="font-size:12px;color:var(--text3)">Impressions</div><div style="font-family:var(--mono);font-size:14px;font-weight:600">${metaImpr.toLocaleString('it-IT')}</div></div><div><div style="font-size:12px;color:var(--text3)">CPC medio</div><div style="font-family:var(--mono);font-size:14px;font-weight:600">${fE(metaCPC)}</div></div></div></div>`;
   const gadsCPC = gadsClicks > 0 ? Math.round((gadsSpend / gadsClicks) * 100) / 100 : 0;
   h += `<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px"><div class="prod-section-title">Google Ads</div><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px"><div><div style="font-size:12px;color:var(--text3)">Speso</div><div style="font-family:var(--mono);font-size:20px;font-weight:700">${fE(gadsSpend)}</div></div><div><div style="font-size:12px;color:var(--text3)">Click</div><div style="font-family:var(--mono);font-size:20px;font-weight:700">${gadsClicks.toLocaleString('it-IT')}</div></div><div><div style="font-size:12px;color:var(--text3)">Conversioni</div><div style="font-family:var(--mono);font-size:14px;font-weight:600">${Math.round(gadsConv)}</div></div><div><div style="font-size:12px;color:var(--text3)">CPC medio</div><div style="font-family:var(--mono);font-size:14px;font-weight:600">${fE(gadsCPC)}</div></div></div></div>`;
-  h += `<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px"><div class="prod-section-title">GA4 Sito Web</div><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px"><div><div style="font-size:12px;color:var(--text3)">Sessioni</div><div style="font-family:var(--mono);font-size:20px;font-weight:700">${ga4Sessions.toLocaleString('it-IT')}</div></div><div><div style="font-size:12px;color:var(--text3)">Pagine corso</div><div style="font-family:var(--mono);font-size:20px;font-weight:700">${ga4p.filter((p) => p.sigla).length}</div></div><div><div style="font-size:12px;color:var(--text3)">Utenti totali</div><div style="font-family:var(--mono);font-size:14px;font-weight:600">${ga4p.reduce((s, p) => s + (parseInt(p.users) || 0), 0).toLocaleString('it-IT')}</div></div><div><div style="font-size:12px;color:var(--text3)">Pageviews</div><div style="font-family:var(--mono);font-size:14px;font-weight:600">${ga4p.reduce((s, p) => s + (parseInt(p.pageViews) || 0), 0).toLocaleString('it-IT')}</div></div></div></div>`;
+  h += `<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px"><div class="prod-section-title">GA4 Sito Web</div><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px"><div><div style="font-size:12px;color:var(--text3)">Sessioni</div><div style="font-family:var(--mono);font-size:20px;font-weight:700">${ga4Sessions.toLocaleString('it-IT')}</div></div><div><div style="font-size:12px;color:var(--text3)">Pagine corso</div><div style="font-family:var(--mono);font-size:20px;font-weight:700">${ga4year.length}</div></div><div><div style="font-size:12px;color:var(--text3)">Utenti totali</div><div style="font-family:var(--mono);font-size:14px;font-weight:600">${ga4year.reduce((s, p) => s + (parseInt(p.users) || 0), 0).toLocaleString('it-IT')}</div></div><div><div style="font-size:12px;color:var(--text3)">Pageviews</div><div style="font-family:var(--mono);font-size:14px;font-weight:600">${ga4year.reduce((s, p) => s + (parseInt(p.pageViews) || 0), 0).toLocaleString('it-IT')}</div></div></div></div>`;
   h += '</div>';
 
   // Ranking + Top pages
@@ -105,7 +106,7 @@ export function renderMarketing() {
   }
   h += '</div>';
 
-  const coursePages = ga4p.filter((p) => p.sigla).sort((a, b) => (parseInt(b.sessions) || 0) - (parseInt(a.sessions) || 0));
+  const coursePages = ga4p.filter((p) => p.sigla && yearProds.has(nP(p.sigla))).sort((a, b) => (parseInt(b.sessions) || 0) - (parseInt(a.sessions) || 0));
   h += '<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px"><div class="prod-section-title">Top pagine corso (GA4)</div>';
   if (coursePages.length) {
     h += '<table class="mtable"><thead><tr><th>Pagina</th><th>Corso</th><th class="num">Sessioni</th><th class="num">Utenti</th><th class="num">Engagement</th><th class="num">Bounce</th></tr></thead><tbody>';
@@ -129,7 +130,12 @@ export function renderMarketing() {
   // Daily trend
   if (mcd.length > 0) {
     h += '<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-top:16px"><div class="prod-section-title">Trend giornaliero campagne Meta (ultimi 30gg)</div>';
-    h += buildDailyChart(mcd, null, null);
+    // Filter daily data: only campaigns matching year products with year intake in name
+    const mcdYear = mcd.filter((r) => {
+      const s = (r.sigle || '').split(',').map((x) => nP(x.trim())).filter(Boolean);
+      return s.some((sig) => yearProds.has(sig));
+    });
+    h += buildDailyChart(mcdYear, null, null);
     h += '</div>';
   }
 
@@ -157,7 +163,7 @@ export function renderMarketing() {
     if (g.formTipo !== 'brochure') return;
     const cc = (g.codicecorso || '').toUpperCase().split('-');
     const prod = cc[0] ? nP(cc[0]) : '';
-    if (!prod) return;
+    if (!prod || !yearProds.has(prod)) return;
     if (!brochureByProd[prod]) brochureByProd[prod] = { downloads: 0, emails: new Set() };
     brochureByProd[prod].downloads++;
     if (g.email) brochureByProd[prod].emails.add(g.email.toLowerCase());

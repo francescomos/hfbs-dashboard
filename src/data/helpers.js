@@ -1,6 +1,6 @@
-import { state } from '../state.js?v=20261013b';
-import { nP } from '../utils/normalize.js?v=20261013b';
-import { buildCorsi } from './buildCorsi.js?v=20261013b';
+import { state } from '../state.js?v=20261013c';
+import { nP } from '../utils/normalize.js?v=20261013c';
+import { buildCorsi } from './buildCorsi.js?v=20261013c';
 
 // Build set of product codes for the currently selected year
 function prodsForCurrentYear() {
